@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: roofing-estimator-api
+    env: node
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: tsx api/server.ts
+    autoDeploy: true
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: UPLOAD_DIR
+        value: uploads
+      - key: MAX_FILE_SIZE
+        value: "52428800"
+      - key: PYTHON_PARSE_URL
+        sync: false
+
+  - type: web
+    name: roofing-estimator-python
+    env: python
+    buildCommand: pip install -r python_service/requirements.txt
+    startCommand: uvicorn python_service.main:app --host 0.0.0.0 --port $PORT
+    autoDeploy: true
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: "*"

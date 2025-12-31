@@ -1,0 +1,16 @@
+﻿Labor Price Sheet
+* Roofing measurements should be broken down and cross-referenced for complexity for labor upcharges.
+   * Standard roof install: $85
+   * No Trailer Access: $20/SQ
+   * Second Story: $20/SQ
+   * Third Story: $40/SQ
+   * 2nd Layer of Shingles: $30/SQ
+   * Hand Load Materials: $20/SQ
+   * High Pitch (8/12): $20/SQ
+   * High Pitch (9/12): $30/SQ
+   * High Pitch (10/12): $40/SQ
+   * High Pitch (11/12): $50/SQ
+   * High Pitch (12/12 or Greater): $60/SQ
+   * Ridge Vent Install: $25/LF
+   * Mansard Install: $350/SQ
+   * Excess Weight Dump Fee >30SQ: $750

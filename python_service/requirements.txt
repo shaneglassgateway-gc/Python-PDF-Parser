@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+pdfplumber
+pdfminer.six
+pillow
