@@ -119,11 +119,50 @@ export function calculateMaterialQuantities(
 
 export function applyMaterialPrices(
   materials: MaterialItem[],
-  prices: Array<{ itemName: string; pricePerUnit: number }>
+  prices: Array<{ itemName: string; pricePerUnit: number; unitOfMeasure?: string; category?: string }>
 ): MaterialItem[] {
+  const norm = (s?: string) =>
+    String(s || '')
+      .toLowerCase()
+      .replace(/™|®|\\.|,/g, '')
+      .replace(/&/g, ' and ')
+      .replace(/hip\\s*and\\s*ridge|hip\\s*ridge/g, 'hip ridge')
+      .replace(/drip\\s*edge/g, 'drip edge')
+      .replace(/ice\\s*and\\s*water|ice\\s*water/g, 'ice water')
+      .replace(/synthetic\\s*roofing\\s*underlayment/g, 'synthetic underlayment')
+      .replace(/\\s+/g, ' ')
+      .trim()
+  const normUnit = (u?: string) => {
+    const m = String(u || '').toLowerCase().trim()
+    if (m === 'bdl') return 'bundle'
+    if (m === 'rl') return 'roll'
+    if (m === 'pc') return 'piece'
+    if (m === 'ctn') return 'carton'
+    if (m === 'bx') return 'box'
+    if (m === 'tb') return 'tube'
+    if (m === 'ea') return 'each'
+    return m
+  }
   return materials.map(material => {
-    const price = prices.find(p => p.itemName.trim().toLowerCase() === material.itemName.trim().toLowerCase())
-    const pricePerUnit = price?.pricePerUnit || 0
+    const mName = norm(material.itemName)
+    const mUnit = normUnit(material.unitOfMeasure)
+    const mCat = String(material.category || '').toLowerCase()
+    let best: { pricePerUnit: number } | null = null
+    let bestScore = -1
+    for (const p of prices) {
+      const pName = norm(p.itemName)
+      const pUnit = normUnit(p.unitOfMeasure)
+      const pCat = String(p.category || '').toLowerCase()
+      let score = 0
+      if (pName === mName) score = 3
+      else if (pCat && mCat && pCat === mCat && pUnit === mUnit) score = 2
+      else if (pName.includes(mName) || mName.includes(pName)) score = 1
+      if (score > bestScore) {
+        bestScore = score
+        best = { pricePerUnit: p.pricePerUnit }
+      }
+    }
+    const pricePerUnit = best?.pricePerUnit || 0
     const totalCost = material.quantity * pricePerUnit
     
     return {

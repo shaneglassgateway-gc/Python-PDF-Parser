@@ -149,7 +149,9 @@ export default function Estimate() {
       // Convert database types to calculation types
       const priceData = materialPrices.map(price => ({
         itemName: price.item_name,
-        pricePerUnit: price.price_per_unit
+        pricePerUnit: price.price_per_unit,
+        unitOfMeasure: price.unit_of_measure,
+        category: price.category
       }))
 
       const ruleData = materialRules.map(rule => ({
