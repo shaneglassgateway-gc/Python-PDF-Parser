@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import tempfile
@@ -21,8 +21,8 @@ app.add_middleware(
 )
 
 @app.post("/parse")
-async def parse(file: UploadFile = File(...)):
-    data = await file.read()
+async def parse(request: Request):
+    data = await request.body()
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         tmp.write(data)
         tmp_path = tmp.name

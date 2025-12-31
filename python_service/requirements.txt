@@ -3,3 +3,4 @@ uvicorn
 pdfplumber
 pdfminer.six
 pillow
+python-multipart
