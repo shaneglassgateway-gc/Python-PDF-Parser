@@ -40,6 +40,13 @@ export default function Upload() {
     projectType: 'residential',
     notes: ''
   })
+  const [options, setOptions] = useState({
+    noTrailerAccess: false,
+    ridgeVent: false,
+    thirdStory: false,
+    secondLayer: false,
+    handLoadMaterials: false,
+  })
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -146,7 +153,14 @@ export default function Upload() {
         project_type: jobDetails.projectType,
         notes: jobDetails.notes,
         eagleview_data: eagleViewData,
-        roof_measurements: eagleViewData,
+        roof_measurements: {
+          ...eagleViewData,
+          hasTrailerAccess: !options.noTrailerAccess,
+          hasSecondLayer: options.secondLayer,
+          hasRidgeVent: options.ridgeVent,
+          thirdStory: options.thirdStory,
+          handLoadMaterials: options.handLoadMaterials,
+        },
         status: 'draft'
       }
       
@@ -306,6 +320,33 @@ export default function Upload() {
                     required
                     disabled={parsing}
                   />
+                </div>
+                
+                {/* Labor Options */}
+                <div className="col-span-1 md:col-span-2">
+                  <h3 className="text-md font-semibold text-gray-900 mb-2">Labor Options</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={options.noTrailerAccess} onChange={(e)=>setOptions(p=>({...p,noTrailerAccess:e.target.checked}))} />
+                      <span>No Trailer Access (+$/SQ)</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={options.ridgeVent} onChange={(e)=>setOptions(p=>({...p,ridgeVent:e.target.checked}))} />
+                      <span>Ridge Vent Install (LF)</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={options.thirdStory} onChange={(e)=>setOptions(p=>({...p,thirdStory:e.target.checked}))} />
+                      <span>Third Story (+$/SQ)</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={options.secondLayer} onChange={(e)=>setOptions(p=>({...p,secondLayer:e.target.checked}))} />
+                      <span>Second Layer (+$/SQ)</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={options.handLoadMaterials} onChange={(e)=>setOptions(p=>({...p,handLoadMaterials:e.target.checked}))} />
+                      <span>Hand Load Materials (+$/SQ)</span>
+                    </label>
+                  </div>
                 </div>
                 
                 <div>

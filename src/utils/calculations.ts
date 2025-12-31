@@ -11,6 +11,10 @@ export interface RoofMeasurements {
   hasTrailerAccess: boolean
   hasSecondLayer: boolean
   lowPitchArea: number // area with pitch ≤ 2/12
+  hasRidgeVent?: boolean
+  thirdStory?: boolean
+  handLoadMaterials?: boolean
+  pitchBreakdown?: Array<{ pitch: string; squares: number }>
 }
 
 export interface MaterialItem {
@@ -178,6 +182,7 @@ export function calculateLaborCosts(
   laborRates: LaborRate[]
 ): LaborItem[] {
   const laborItems: LaborItem[] = []
+  const effectiveSquares = Math.max(0, measurements.roofAreaRounded ?? Math.ceil(measurements.roofArea))
   
   // Base installation cost
   const baseInstall = laborRates.find(rate => rate.conditionType === 'Standard Install')
@@ -188,28 +193,13 @@ export function calculateLaborCosts(
       description: baseInstall.description,
       ratePerSquare: baseInstall.ratePerSquare,
       ratePerLinearFoot: baseInstall.ratePerLinearFoot,
-      quantity: measurements.roofArea,
-      totalCost: measurements.roofArea * (baseInstall.ratePerSquare || 0)
+      quantity: effectiveSquares,
+      totalCost: effectiveSquares * (baseInstall.ratePerSquare || 0)
     })
   }
   
   // Story-based upcharges
-  if (measurements.stories >= 2) {
-    const secondStory = laborRates.find(rate => rate.conditionType === 'Second Story')
-    if (secondStory) {
-      laborItems.push({
-        id: secondStory.id,
-        conditionType: secondStory.conditionType,
-        description: secondStory.description,
-        ratePerSquare: secondStory.ratePerSquare,
-        ratePerLinearFoot: secondStory.ratePerLinearFoot,
-        quantity: measurements.roofArea,
-        totalCost: measurements.roofArea * (secondStory.ratePerSquare || 0)
-      })
-    }
-  }
-  
-  if (measurements.stories >= 3) {
+  if (measurements.thirdStory) {
     const thirdStory = laborRates.find(rate => rate.conditionType === 'Third Story')
     if (thirdStory) {
       laborItems.push({
@@ -218,37 +208,49 @@ export function calculateLaborCosts(
         description: thirdStory.description,
         ratePerSquare: thirdStory.ratePerSquare,
         ratePerLinearFoot: thirdStory.ratePerLinearFoot,
-        quantity: measurements.roofArea,
-        totalCost: measurements.roofArea * (thirdStory.ratePerSquare || 0)
+        quantity: effectiveSquares,
+        totalCost: effectiveSquares * (thirdStory.ratePerSquare || 0)
+      })
+    }
+  } else if (measurements.stories >= 2) {
+    const secondStory = laborRates.find(rate => rate.conditionType === 'Second Story')
+    if (secondStory) {
+      laborItems.push({
+        id: secondStory.id,
+        conditionType: secondStory.conditionType,
+        description: secondStory.description,
+        ratePerSquare: secondStory.ratePerSquare,
+        ratePerLinearFoot: secondStory.ratePerLinearFoot,
+        quantity: effectiveSquares,
+        totalCost: effectiveSquares * (secondStory.ratePerSquare || 0)
       })
     }
   }
   
   // Pitch-based upcharges
   const pitchUpcharges = [
-    { min: 8/12, max: 9/12, type: 'High Pitch 8/12' },
-    { min: 9/12, max: 10/12, type: 'High Pitch 9/12' },
-    { min: 10/12, max: 11/12, type: 'High Pitch 10/12' },
-    { min: 11/12, max: 12/12, type: 'High Pitch 11/12' },
-    { min: 12/12, max: 100, type: 'High Pitch 12/12+' }
+    { label: '8/12', type: 'High Pitch 8/12' },
+    { label: '9/12', type: 'High Pitch 9/12' },
+    { label: '10/12', type: 'High Pitch 10/12' },
+    { label: '11/12', type: 'High Pitch 11/12' },
+    { label: '12/12+', type: 'High Pitch 12/12+' }
   ]
-  
-  for (const upcharge of pitchUpcharges) {
-    if (measurements.pitch >= upcharge.min && measurements.pitch < upcharge.max) {
-      const rate = laborRates.find(rate => rate.conditionType === upcharge.type)
-      if (rate) {
-        laborItems.push({
-          id: rate.id,
-          conditionType: rate.conditionType,
-          description: rate.description,
-          ratePerSquare: rate.ratePerSquare,
-          ratePerLinearFoot: rate.ratePerLinearFoot,
-          quantity: measurements.roofArea,
-          totalCost: measurements.roofArea * (rate.ratePerSquare || 0)
-        })
-      }
-      break
-    }
+  const breakdown = measurements.pitchBreakdown || []
+  for (const part of breakdown) {
+    const match = pitchUpcharges.find(u => part.pitch.startsWith(u.label))
+    if (!match) continue
+    const rate = laborRates.find(rate => rate.conditionType === match.type)
+    if (!rate) continue
+    const sq = Math.max(0, part.squares || 0)
+    laborItems.push({
+      id: rate.id,
+      conditionType: rate.conditionType,
+      description: rate.description,
+      ratePerSquare: rate.ratePerSquare,
+      ratePerLinearFoot: rate.ratePerLinearFoot,
+      quantity: sq,
+      totalCost: sq * (rate.ratePerSquare || 0)
+    })
   }
   
   // Other conditions
@@ -261,8 +263,8 @@ export function calculateLaborCosts(
         description: noTrailer.description,
         ratePerSquare: noTrailer.ratePerSquare,
         ratePerLinearFoot: noTrailer.ratePerLinearFoot,
-        quantity: measurements.roofArea,
-        totalCost: measurements.roofArea * (noTrailer.ratePerSquare || 0)
+        quantity: effectiveSquares,
+        totalCost: effectiveSquares * (noTrailer.ratePerSquare || 0)
       })
     }
   }
@@ -276,15 +278,15 @@ export function calculateLaborCosts(
         description: secondLayer.description,
         ratePerSquare: secondLayer.ratePerSquare,
         ratePerLinearFoot: secondLayer.ratePerLinearFoot,
-        quantity: measurements.roofArea,
-        totalCost: measurements.roofArea * (secondLayer.ratePerSquare || 0)
+        quantity: effectiveSquares,
+        totalCost: effectiveSquares * (secondLayer.ratePerSquare || 0)
       })
     }
   }
   
   // Ridge vent installation
   const ridgeVent = laborRates.find(rate => rate.conditionType === 'Ridge Vent Install')
-  if (ridgeVent && measurements.ridgesLength > 0) {
+  if (ridgeVent && measurements.hasRidgeVent && measurements.ridgesLength > 0) {
     laborItems.push({
       id: ridgeVent.id,
       conditionType: ridgeVent.conditionType,
@@ -294,6 +296,33 @@ export function calculateLaborCosts(
       quantity: measurements.ridgesLength,
       totalCost: measurements.ridgesLength * (ridgeVent.ratePerLinearFoot || 0)
     })
+  }
+
+  // Hand load materials
+  const handLoad = laborRates.find(rate => rate.conditionType === 'Hand Load Materials')
+  if (handLoad && measurements.handLoadMaterials) {
+    laborItems.push({
+      id: handLoad.id,
+      conditionType: handLoad.conditionType,
+      description: handLoad.description,
+      ratePerSquare: handLoad.ratePerSquare,
+      ratePerLinearFoot: handLoad.ratePerLinearFoot,
+      quantity: effectiveSquares,
+      totalCost: effectiveSquares * (handLoad.ratePerSquare || 0)
+    })
+  }
+
+  // Excess weight dump fee if > 30 squares
+  if (effectiveSquares > 30) {
+    const dumpFee = laborRates.find(rate => rate.conditionType === 'Excess Weight Dump Fee')
+    const fee = dumpFee?.ratePerSquare || 750
+    laborItems.push({
+      id: dumpFee?.id || 'dump-fee',
+      conditionType: 'Excess Weight Dump Fee',
+      description: dumpFee?.description || 'Excess Weight Dump Fee (>30SQ)',
+      quantity: 1,
+      totalCost: fee
+    } as any)
   }
   
   return laborItems

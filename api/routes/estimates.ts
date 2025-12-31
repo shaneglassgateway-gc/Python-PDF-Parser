@@ -148,6 +148,13 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
     const suggestedWaste = parsedData?.suggested_waste || null
     const wasteSquares = suggestedWaste ? parseFloat(suggestedWaste.squares || 0) || 0 : 0
 
+    const pitchBreakdown = Array.isArray(breakdown)
+      ? breakdown.map((p: any) => ({
+          pitch: String(p.pitch || ''),
+          squares: (parseFloat(p.area_sqft || p.area || 0) / 100) || 0,
+        }))
+      : []
+
     const mapped = {
       roofArea: (parseFloat(roof.total_area_sqft || roof.total_area || 0) / 100) || 0,
       roofAreaRounded: Math.ceil(wasteSquares || (parseFloat(roof.total_area_sqft || 0) / 100)) || 0,
@@ -161,7 +168,11 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
       stories: storiesNum || 1,
       hasTrailerAccess: false,
       hasSecondLayer: false,
+      hasRidgeVent: false,
+      thirdStory: false,
+      handLoadMaterials: false,
       lowPitchArea: lowPitchSq || 0,
+      pitchBreakdown,
     }
 
     // Clean up uploaded file
