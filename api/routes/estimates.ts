@@ -204,6 +204,66 @@ router.get('/', async (req: Request, res: Response) => {
   }
 })
 
+// Public: material pricing
+router.get('/material-prices', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('material_prices')
+      .select('*')
+      .eq('is_active', true)
+      .order('category')
+
+    if (error) {
+      throw error
+    }
+
+    res.json({ materialPrices: data })
+  } catch (error) {
+    console.error('Error fetching material prices:', error)
+    res.status(500).json({ error: 'Failed to fetch material prices' })
+  }
+})
+
+// Public: labor rates
+router.get('/labor-rates', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('labor_rates')
+      .select('*')
+      .eq('is_active', true)
+      .order('condition_type')
+
+    if (error) {
+      throw error
+    }
+
+    res.json({ laborRates: data })
+  } catch (error) {
+    console.error('Error fetching labor rates:', error)
+    res.status(500).json({ error: 'Failed to fetch labor rates' })
+  }
+})
+
+// Public: material order rules
+router.get('/material-order-rules', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('material_order_rules')
+      .select('*')
+      .eq('is_active', true)
+      .order('category')
+
+    if (error) {
+      throw error
+    }
+
+    res.json({ materialOrderRules: data })
+  } catch (error) {
+    console.error('Error fetching material order rules:', error)
+    res.status(500).json({ error: 'Failed to fetch material order rules' })
+  }
+})
+
 // Get a single estimate
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -331,64 +391,6 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 })
 
-// Get material prices
-router.get('/material-prices', async (req: Request, res: Response) => {
-  try {
-    const { data, error } = await supabase
-      .from('material_prices')
-      .select('*')
-      .eq('is_active', true)
-      .order('category')
-
-    if (error) {
-      throw error
-    }
-
-    res.json({ materialPrices: data })
-  } catch (error) {
-    console.error('Error fetching material prices:', error)
-    res.status(500).json({ error: 'Failed to fetch material prices' })
-  }
-})
-
-// Get labor rates
-router.get('/labor-rates', async (req: Request, res: Response) => {
-  try {
-    const { data, error } = await supabase
-      .from('labor_rates')
-      .select('*')
-      .eq('is_active', true)
-      .order('condition_type')
-
-    if (error) {
-      throw error
-    }
-
-    res.json({ laborRates: data })
-  } catch (error) {
-    console.error('Error fetching labor rates:', error)
-    res.status(500).json({ error: 'Failed to fetch labor rates' })
-  }
-})
-
-// Get material order rules
-router.get('/material-order-rules', async (req: Request, res: Response) => {
-  try {
-    const { data, error } = await supabase
-      .from('material_order_rules')
-      .select('*')
-      .eq('is_active', true)
-      .order('category')
-
-    if (error) {
-      throw error
-    }
-
-    res.json({ materialOrderRules: data })
-  } catch (error) {
-    console.error('Error fetching material order rules:', error)
-    res.status(500).json({ error: 'Failed to fetch material order rules' })
-  }
-})
+// (moved earlier) specific pricing/rate routes
 
 export default router

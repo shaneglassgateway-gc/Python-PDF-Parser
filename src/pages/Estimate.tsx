@@ -124,15 +124,19 @@ export default function Estimate() {
         fetch(`${base}/api/estimates/material-order-rules`)
       ])
 
+      if (!materialPricesRes.ok || !laborRatesRes.ok || !materialRulesRes.ok) {
+        throw new Error('Failed to load pricing data')
+      }
+
       const [materialPricesData, laborRatesData, materialRulesData] = await Promise.all([
         materialPricesRes.json(),
         laborRatesRes.json(),
         materialRulesRes.json()
       ])
 
-      setMaterialPrices(materialPricesData.materialPrices)
-      setLaborRates(laborRatesData.laborRates)
-      setMaterialRules(materialRulesData.materialOrderRules)
+      setMaterialPrices(materialPricesData?.materialPrices ?? [])
+      setLaborRates(laborRatesData?.laborRates ?? [])
+      setMaterialRules(materialRulesData?.materialOrderRules ?? [])
     } catch (err) {
       console.error('Failed to load pricing data:', err)
     }
