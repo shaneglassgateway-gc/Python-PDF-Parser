@@ -1,5 +1,6 @@
 export interface RoofMeasurements {
   roofArea: number // in squares (1 square = 100 sq ft)
+  roofAreaRounded?: number // effective squares (suggested waste rounded up)
   eavesLength: number // in linear feet
   rakesLength: number // in linear feet
   valleysLength: number // in linear feet
@@ -54,6 +55,7 @@ export function calculateMaterialQuantities(
   rules: MaterialOrderRule[]
 ): MaterialItem[] {
   const materials: MaterialItem[] = []
+  const effectiveSquares = Math.max(0, measurements.roofAreaRounded ?? Math.ceil(measurements.roofArea))
   
   rules.forEach(rule => {
     let quantity = 0
@@ -61,7 +63,8 @@ export function calculateMaterialQuantities(
     // Calculate quantity based on formula
     switch (rule.quantityFormula) {
       case 'roof_area_sq / 3':
-        quantity = Math.ceil(measurements.roofArea / 3)
+        // Shingle bundles: 3 bundles per square, use suggested waste rounded
+        quantity = Math.ceil(effectiveSquares * 3)
         break
       case 'hip_ridge_lf / 30':
         quantity = Math.ceil((measurements.hipsLength + measurements.ridgesLength) / 30)
@@ -70,7 +73,7 @@ export function calculateMaterialQuantities(
         quantity = Math.ceil(measurements.ridgesLength / 4)
         break
       case 'roof_area_sq / 10':
-        quantity = Math.ceil(measurements.roofArea / 10)
+        quantity = Math.ceil(effectiveSquares / 10)
         break
       case '(eaves_lf + rakes_lf) / 100':
         quantity = Math.ceil((measurements.eavesLength + measurements.rakesLength) / 100)
@@ -82,13 +85,13 @@ export function calculateMaterialQuantities(
         quantity = Math.ceil(measurements.valleysLength / 66)
         break
       case 'roof_area_sq / 15':
-        quantity = Math.ceil(measurements.roofArea / 15)
+        quantity = Math.ceil(effectiveSquares / 15)
         break
       case 'roof_area_sq / 10':
-        quantity = Math.ceil(measurements.roofArea / 10)
+        quantity = Math.ceil(effectiveSquares / 10)
         break
       case 'roof_area_sq / 15':
-        quantity = Math.ceil(measurements.roofArea / 15)
+        quantity = Math.ceil(effectiveSquares / 15)
         break
       case 'low_pitch_area_sq':
         quantity = Math.ceil(measurements.lowPitchArea)
@@ -97,7 +100,7 @@ export function calculateMaterialQuantities(
         quantity = Math.ceil(measurements.lowPitchArea / 2)
         break
       default:
-        quantity = 1
+        quantity = 0
     }
     
     materials.push({
@@ -119,7 +122,7 @@ export function applyMaterialPrices(
   prices: Array<{ itemName: string; pricePerUnit: number }>
 ): MaterialItem[] {
   return materials.map(material => {
-    const price = prices.find(p => p.itemName === material.itemName)
+    const price = prices.find(p => p.itemName.trim().toLowerCase() === material.itemName.trim().toLowerCase())
     const pricePerUnit = price?.pricePerUnit || 0
     const totalCost = material.quantity * pricePerUnit
     

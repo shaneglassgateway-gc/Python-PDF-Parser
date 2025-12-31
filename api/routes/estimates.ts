@@ -145,9 +145,13 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
     const m = String(pitchStr).match(/(\d+)\/(\d+)/)
     const pitchRatio = m ? (parseFloat(m[1]) / (parseFloat(m[2]) || 12)) : 0
     const storiesNum = roof.num_stories ? parseInt(String(roof.num_stories).replace(/[^0-9]/g, '') || '1', 10) : 1
+    const suggestedWaste = parsedData?.suggested_waste || null
+    const wasteSquares = suggestedWaste ? parseFloat(suggestedWaste.squares || 0) || 0 : 0
 
     const mapped = {
       roofArea: (parseFloat(roof.total_area_sqft || roof.total_area || 0) / 100) || 0,
+      roofAreaRounded: Math.ceil(wasteSquares || (parseFloat(roof.total_area_sqft || 0) / 100)) || 0,
+      wasteSquares,
       eavesLength: parseFloat(roof.eaves_ft || 0) || 0,
       rakesLength: parseFloat(roof.rakes_ft || 0) || 0,
       valleysLength: parseFloat(roof.valleys_ft || 0) || 0,
