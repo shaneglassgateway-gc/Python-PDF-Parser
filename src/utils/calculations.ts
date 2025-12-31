@@ -79,7 +79,7 @@ export function calculateMaterialQuantities(
         quantity = Math.ceil((measurements.eavesLength + measurements.rakesLength) / 100)
         break
       case '(eaves_lf + rakes_lf) / 10':
-        quantity = Math.ceil((measurements.eavesLength + measurements.rakesLength) / 10)
+        quantity = Math.ceil((measurements.eavesLength + measurements.rakesLength) / 10 + 5)
         break
       case 'valleys_lf / 66':
         quantity = Math.ceil(measurements.valleysLength / 66)
