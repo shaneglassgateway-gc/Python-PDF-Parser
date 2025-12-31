@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search, Calendar, MapPin, DollarSign, Eye, Download } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { apiBase } from '../lib/utils'
 
 interface Estimate {
   id: string
@@ -40,7 +41,7 @@ export default function History() {
         throw new Error('You must be logged in to view estimates')
       }
 
-      const response = await fetch('/api/estimates', {
+      const response = await fetch(`${apiBase()}/api/estimates`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }

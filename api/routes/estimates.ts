@@ -126,10 +126,44 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
       return res.status(500).json({ error: 'Failed to parse EagleView file', detail: String(lastError) })
     }
 
+    // Transform to frontend shape
+    const roof = parsedData?.roof_measurements || {}
+    const breakdown = parsedData?.pitch_breakdown || []
+    const lowPitchSq = Array.isArray(breakdown)
+      ? breakdown
+          .filter((p: any) => {
+            const m = String(p.pitch || '').match(/(\d+)\/(\d+)/)
+            if (!m) return false
+            const num = parseFloat(m[1])
+            const den = parseFloat(m[2] || '12') || 12
+            return (num/den) <= (2/12)
+          })
+          .reduce((sum: number, p: any) => sum + (parseFloat(p.area_sqft || p.area || 0) / 100), 0)
+      : 0
+
+    const pitchStr = roof.predominant_pitch || ''
+    const m = String(pitchStr).match(/(\d+)\/(\d+)/)
+    const pitchRatio = m ? (parseFloat(m[1]) / (parseFloat(m[2]) || 12)) : 0
+    const storiesNum = roof.num_stories ? parseInt(String(roof.num_stories).replace(/[^0-9]/g, '') || '1', 10) : 1
+
+    const mapped = {
+      roofArea: (parseFloat(roof.total_area_sqft || roof.total_area || 0) / 100) || 0,
+      eavesLength: parseFloat(roof.eaves_ft || 0) || 0,
+      rakesLength: parseFloat(roof.rakes_ft || 0) || 0,
+      valleysLength: parseFloat(roof.valleys_ft || 0) || 0,
+      hipsLength: parseFloat(roof.hips_ft || 0) || 0,
+      ridgesLength: parseFloat(roof.ridges_ft || 0) || 0,
+      pitch: pitchRatio || 0,
+      stories: storiesNum || 1,
+      hasTrailerAccess: false,
+      hasSecondLayer: false,
+      lowPitchArea: lowPitchSq || 0,
+    }
+
     // Clean up uploaded file
     try { fs.unlinkSync(filePath) } catch {}
     
-    res.json({ success: true, data: parsedData, message: 'EagleView file parsed successfully' })
+    res.json({ success: true, data: mapped, message: 'EagleView file parsed successfully' })
   } catch (error) {
     console.error('Parse error:', error)
     res.status(500).json({ error: 'Failed to parse EagleView file' })

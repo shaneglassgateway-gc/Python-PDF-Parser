@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UploadCloud, FileText, AlertCircle, CheckCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { apiBase } from '../lib/utils'
 
 interface EagleViewData {
   roofArea: number
@@ -89,7 +90,7 @@ export default function Upload() {
       const formData = new FormData()
       formData.append('file', file)
       
-      const response = await fetch('/api/estimates/parse-eagleview', {
+      const response = await fetch(`${apiBase()}/api/estimates/parse-eagleview`, {
         method: 'POST',
         body: formData
       })
@@ -150,7 +151,7 @@ export default function Upload() {
       }
       
       // Create the estimate
-      const response = await fetch('/api/estimates', {
+      const response = await fetch(`${apiBase()}/api/estimates`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -219,8 +220,8 @@ export default function Upload() {
                   <p className="text-green-600 font-medium">EagleView file parsed successfully!</p>
                   {eagleViewData && (
                     <div className="mt-4 text-sm text-gray-600">
-                      <p>Roof Area: {eagleViewData.roofArea.toFixed(1)} squares</p>
-                      <p>Pitch: {eagleViewData.pitch.toFixed(2)}</p>
+                      <p>Roof Area: {(eagleViewData.roofArea ?? 0).toFixed(1)} squares</p>
+                      <p>Pitch: {(eagleViewData.pitch ?? 0).toFixed(2)}</p>
                       <p>Stories: {eagleViewData.stories}</p>
                     </div>
                   )}

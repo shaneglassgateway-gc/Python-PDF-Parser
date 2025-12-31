@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, Mail, Calculator, Building, DollarSign, HardHat } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { apiBase } from '../lib/utils'
 import { 
   calculateMaterialQuantities, 
   applyMaterialPrices, 
@@ -94,7 +95,7 @@ export default function Estimate() {
         throw new Error('You must be logged in to view estimates')
       }
 
-      const response = await fetch(`/api/estimates/${id}`, {
+      const response = await fetch(`${apiBase()}/api/estimates/${id}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -116,10 +117,11 @@ export default function Estimate() {
 
   const loadPricingData = async () => {
     try {
+      const base = apiBase()
       const [materialPricesRes, laborRatesRes, materialRulesRes] = await Promise.all([
-        fetch('/api/estimates/material-prices'),
-        fetch('/api/estimates/labor-rates'),
-        fetch('/api/estimates/material-order-rules')
+        fetch(`${base}/api/estimates/material-prices`),
+        fetch(`${base}/api/estimates/labor-rates`),
+        fetch(`${base}/api/estimates/material-order-rules`)
       ])
 
       const [materialPricesData, laborRatesData, materialRulesData] = await Promise.all([
@@ -190,7 +192,7 @@ export default function Estimate() {
       // Save the updated estimate
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
-        await fetch(`/api/estimates/${id}`, {
+        await fetch(`${apiBase()}/api/estimates/${id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
