@@ -73,8 +73,9 @@ export default function Estimate() {
     subtotal: 0,
     profit: 0,
     totalCost: 0,
-    profitMargin: 0.20
+    profitMargin: 0.40
   })
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     loadEstimate()
@@ -94,6 +95,7 @@ export default function Estimate() {
       if (!session) {
         throw new Error('You must be logged in to view estimates')
       }
+      setIsAdmin(((session as any)?.user?.user_metadata?.role) === 'admin')
 
       const response = await fetch(`${apiBase()}/api/estimates/${id}`, {
         headers: {
@@ -363,12 +365,14 @@ export default function Estimate() {
                   <div key={material.id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{material.itemName}</p>
-                      <p className="text-sm text-gray-600">
-                        {material.quantity} {material.unitOfMeasure} × ${material.pricePerUnit.toFixed(2)}
-                      </p>
+                      {isAdmin && (
+                        <p className="text-sm text-gray-600">
+                          {material.quantity} {material.unitOfMeasure} × ${material.pricePerUnit.toFixed(2)}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-gray-900">${material.totalCost.toFixed(2)}</p>
+                      {isAdmin && <p className="font-medium text-gray-900">${material.totalCost.toFixed(2)}</p>}
                     </div>
                   </div>
                 ))}

@@ -212,7 +212,9 @@ router.get('/', async (req: Request, res: Response) => {
       throw error
     }
 
-    res.json({ estimates: data })
+    const isAdmin = (user as any)?.user_metadata?.role === 'admin'
+    const filtered = isAdmin ? data : (data || []).map((d: any) => ({ ...d, material_costs: [] }))
+    res.json({ estimates: filtered })
   } catch (error) {
     console.error('Error fetching estimates:', error)
     res.status(500).json({ error: 'Failed to fetch estimates' })
@@ -312,7 +314,9 @@ router.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Estimate not found' })
     }
 
-    res.json({ estimate: data })
+    const isAdmin = (user as any)?.user_metadata?.role === 'admin'
+    const est = isAdmin ? data : { ...data, material_costs: [] }
+    res.json({ estimate: est })
   } catch (error) {
     console.error('Error fetching estimate:', error)
     res.status(500).json({ error: 'Failed to fetch estimate' })
