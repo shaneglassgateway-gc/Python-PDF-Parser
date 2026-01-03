@@ -185,7 +185,7 @@ export default function Estimate() {
       setLaborCosts(labor)
 
       // Calculate total costs
-      const x = 0.88 - contributionPct
+      const x = 0.86 - contributionPct
       const totals = calculateTotalCosts(materialsWithPrices, labor, x)
       setTotalCosts(totals)
 
