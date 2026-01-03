@@ -64,7 +64,7 @@ export default function Estimate() {
   const [materialRules, setMaterialRules] = useState<MaterialOrderRule[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [contributionX, setContributionX] = useState(0.48)
+  const [contributionPct, setContributionPct] = useState(0.40)
   const [materialCosts, setMaterialCosts] = useState<MaterialItem[]>([])
   const [laborCosts, setLaborCosts] = useState<LaborItem[]>([])
   const [totalCosts, setTotalCosts] = useState({
@@ -85,7 +85,7 @@ export default function Estimate() {
     if (estimate && materialPrices.length > 0 && laborRates.length > 0 && materialRules.length > 0) {
       calculateCosts()
     }
-  }, [estimate, materialPrices, laborRates, materialRules, contributionX])
+  }, [estimate, materialPrices, laborRates, materialRules, contributionPct])
 
   const loadEstimate = async () => {
     try {
@@ -108,7 +108,7 @@ export default function Estimate() {
       const result = await response.json()
       setEstimate(result.estimate)
       const savedCM = result.estimate.profit_margin ?? 0.40
-      setContributionX(0.88 - savedCM)
+      setContributionPct(savedCM)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load estimate')
     } finally {
@@ -182,11 +182,11 @@ export default function Estimate() {
       setLaborCosts(labor)
 
       // Calculate total costs
-      const totals = calculateTotalCosts(materialsWithPrices, labor, contributionX)
+      const x = 0.88 - contributionPct
+      const totals = calculateTotalCosts(materialsWithPrices, labor, x)
       setTotalCosts(totals)
 
       // Update estimate with calculated costs
-      const cmVisible = Math.round((0.88 - contributionX) * 100) / 100
       const updatedEstimate = {
         ...estimate,
         material_costs: materialsWithPrices,
@@ -194,7 +194,7 @@ export default function Estimate() {
         total_material_cost: totals.totalMaterialCost,
         total_labor_cost: totals.totalLaborCost,
         total_cost: totals.totalCost,
-        profit_margin: cmVisible
+        profit_margin: contributionPct
       }
 
       // Save the updated estimate
@@ -215,8 +215,8 @@ export default function Estimate() {
     }
   }
 
-  const handleContributionXChange = (newX: number) => {
-    setContributionX(newX)
+  const handleContributionPctChange = (newPct: number) => {
+    setContributionPct(newPct)
   }
 
   const handleExportPDF = () => {
@@ -330,15 +330,15 @@ export default function Estimate() {
                 <div className="flex items-center space-x-3">
                   <input
                     type="range"
-                    min="0.28"
-                    max="0.53"
+                    min="0.35"
+                    max="0.60"
                     step="0.01"
-                    value={contributionX}
-                    onChange={(e) => handleContributionXChange(parseFloat(e.target.value))}
+                    value={contributionPct}
+                    onChange={(e) => handleContributionPctChange(parseFloat(e.target.value))}
                     className="flex-1"
                   />
                   <span className="text-lg font-medium text-gray-900">
-                    {Math.round((0.88 - contributionX) * 100)}%
+                    {Math.round(contributionPct * 100)}%
                   </span>
                 </div>
               </div>
@@ -442,7 +442,7 @@ export default function Estimate() {
                   ${totalCosts.totalCost.toFixed(2)}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
-                  {Math.round((0.88 - contributionX) * 100)}% contribution margin
+                  {Math.round(contributionPct * 100)}% contribution margin
                 </p>
               </div>
             </div>
