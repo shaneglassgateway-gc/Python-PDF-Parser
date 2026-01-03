@@ -406,6 +406,32 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 })
 
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No authorization header' })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid token' })
+    }
+    const { id } = req.params
+    const { error } = await supabase
+      .from('estimates')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+    if (error) {
+      throw error
+    }
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting estimate:', error)
+    res.status(500).json({ error: 'Failed to delete estimate' })
+  }
+})
 // (moved earlier) specific pricing/rate routes
 
 export default router

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Calendar, MapPin, DollarSign, Eye, Download } from 'lucide-react'
+import { Plus, Search, Calendar, MapPin, DollarSign, Eye, Download, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { apiBase } from '../lib/utils'
 
@@ -57,6 +57,31 @@ export default function History() {
       setError(err instanceof Error ? err.message : 'Failed to load estimates')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      const confirmDelete = window.confirm('Delete this estimate? This cannot be undone.')
+      if (!confirmDelete) return
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setError('You must be logged in to delete estimates')
+        return
+      }
+      const resp = await fetch(`${apiBase()}/api/estimates/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+      if (!resp.ok) {
+        const msg = await resp.text()
+        throw new Error(msg || 'Failed to delete estimate')
+      }
+      setEstimates(prev => prev.filter(e => e.id !== id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete estimate')
     }
   }
 
@@ -291,6 +316,13 @@ export default function History() {
                     >
                       <Download className="h-4 w-4 mr-1" />
                       PDF
+                    </button>
+                    <button
+                      onClick={() => handleDelete(estimate.id)}
+                      className="flex items-center px-3 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
                     </button>
                   </div>
                 </div>
