@@ -365,11 +365,10 @@ export default function Estimate() {
                   <div key={material.id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{material.itemName}</p>
-                      {isAdmin && (
-                        <p className="text-sm text-gray-600">
-                          {material.quantity} {material.unitOfMeasure} × ${material.pricePerUnit.toFixed(2)}
-                        </p>
-                      )}
+                      <p className="text-sm text-gray-600">
+                        {material.quantity} {material.unitOfMeasure}
+                        {isAdmin ? ` × $${material.pricePerUnit.toFixed(2)}` : ''}
+                      </p>
                     </div>
                     <div className="text-right">
                       {isAdmin && <p className="font-medium text-gray-900">${material.totalCost.toFixed(2)}</p>}

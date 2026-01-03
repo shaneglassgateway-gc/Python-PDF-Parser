@@ -213,8 +213,16 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     const isAdmin = (user as any)?.user_metadata?.role === 'admin'
-    const filtered = isAdmin ? data : (data || []).map((d: any) => ({ ...d, material_costs: [] }))
-    res.json({ estimates: filtered })
+    const sanitized = (data || []).map((d: any) => {
+      if (isAdmin) return d
+      const items = Array.isArray(d.material_costs) ? d.material_costs.map((m: any) => ({
+        ...m,
+        pricePerUnit: 0,
+        totalCost: 0,
+      })) : []
+      return { ...d, material_costs: items }
+    })
+    res.json({ estimates: sanitized })
   } catch (error) {
     console.error('Error fetching estimates:', error)
     res.status(500).json({ error: 'Failed to fetch estimates' })
@@ -315,7 +323,14 @@ router.get('/:id', async (req: Request, res: Response) => {
     }
 
     const isAdmin = (user as any)?.user_metadata?.role === 'admin'
-    const est = isAdmin ? data : { ...data, material_costs: [] }
+    const est = isAdmin ? data : {
+      ...data,
+      material_costs: Array.isArray(data.material_costs) ? data.material_costs.map((m: any) => ({
+        ...m,
+        pricePerUnit: 0,
+        totalCost: 0,
+      })) : []
+    }
     res.json({ estimate: est })
   } catch (error) {
     console.error('Error fetching estimate:', error)
