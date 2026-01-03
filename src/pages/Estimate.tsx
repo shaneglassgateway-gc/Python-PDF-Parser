@@ -64,7 +64,7 @@ export default function Estimate() {
   const [materialRules, setMaterialRules] = useState<MaterialOrderRule[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [profitMargin, setProfitMargin] = useState(0.20)
+  const [contributionX, setContributionX] = useState(0.48)
   const [materialCosts, setMaterialCosts] = useState<MaterialItem[]>([])
   const [laborCosts, setLaborCosts] = useState<LaborItem[]>([])
   const [totalCosts, setTotalCosts] = useState({
@@ -85,7 +85,7 @@ export default function Estimate() {
     if (estimate && materialPrices.length > 0 && laborRates.length > 0 && materialRules.length > 0) {
       calculateCosts()
     }
-  }, [estimate, materialPrices, laborRates, materialRules, profitMargin])
+  }, [estimate, materialPrices, laborRates, materialRules, contributionX])
 
   const loadEstimate = async () => {
     try {
@@ -107,7 +107,8 @@ export default function Estimate() {
 
       const result = await response.json()
       setEstimate(result.estimate)
-      setProfitMargin(result.estimate.profit_margin || 0.20)
+      const savedCM = result.estimate.profit_margin ?? 0.40
+      setContributionX(0.88 - savedCM)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load estimate')
     } finally {
@@ -181,10 +182,11 @@ export default function Estimate() {
       setLaborCosts(labor)
 
       // Calculate total costs
-      const totals = calculateTotalCosts(materialsWithPrices, labor, profitMargin)
+      const totals = calculateTotalCosts(materialsWithPrices, labor, contributionX)
       setTotalCosts(totals)
 
       // Update estimate with calculated costs
+      const cmVisible = Math.round((0.88 - contributionX) * 100) / 100
       const updatedEstimate = {
         ...estimate,
         material_costs: materialsWithPrices,
@@ -192,7 +194,7 @@ export default function Estimate() {
         total_material_cost: totals.totalMaterialCost,
         total_labor_cost: totals.totalLaborCost,
         total_cost: totals.totalCost,
-        profit_margin: profitMargin
+        profit_margin: cmVisible
       }
 
       // Save the updated estimate
@@ -213,8 +215,8 @@ export default function Estimate() {
     }
   }
 
-  const handleProfitMarginChange = (newMargin: number) => {
-    setProfitMargin(newMargin)
+  const handleContributionXChange = (newX: number) => {
+    setContributionX(newX)
   }
 
   const handleExportPDF = () => {
@@ -324,19 +326,19 @@ export default function Estimate() {
               </div>
               
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Profit Margin</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Contribution Margin</h3>
                 <div className="flex items-center space-x-3">
                   <input
                     type="range"
-                    min="0.1"
-                    max="0.5"
-                    step="0.05"
-                    value={profitMargin}
-                    onChange={(e) => handleProfitMarginChange(parseFloat(e.target.value))}
+                    min="0.28"
+                    max="0.53"
+                    step="0.01"
+                    value={contributionX}
+                    onChange={(e) => handleContributionXChange(parseFloat(e.target.value))}
                     className="flex-1"
                   />
                   <span className="text-lg font-medium text-gray-900">
-                    {(profitMargin * 100).toFixed(0)}%
+                    {Math.round((0.88 - contributionX) * 100)}%
                   </span>
                 </div>
               </div>
@@ -435,12 +437,12 @@ export default function Estimate() {
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-gray-600 mb-1">Total with Profit</p>
+                <p className="text-sm text-gray-600 mb-1">Total with Contribution</p>
                 <p className="text-3xl font-bold text-green-600">
                   ${totalCosts.totalCost.toFixed(2)}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
-                  {(profitMargin * 100).toFixed(0)}% profit margin
+                  {Math.round((0.88 - contributionX) * 100)}% contribution margin
                 </p>
               </div>
             </div>
