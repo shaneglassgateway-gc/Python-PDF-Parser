@@ -40,12 +40,12 @@ export default function Navigation() {
   return (
     <nav className="bg-white shadow-lg border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-24">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link to="/history" className="flex items-center">
-                <img src="/logo.png" alt="Gateway Estimator" className="h-12 w-12 object-contain" />
-                <span className="ml-3 text-xl font-bold text-gray-900">
+                <img src="/logo.png" alt="Gateway Estimator" className="h-24 w-24 object-contain" />
+                <span className="ml-4 text-xl font-bold text-gray-900">
                   Gateway Estimator
                 </span>
               </Link>
