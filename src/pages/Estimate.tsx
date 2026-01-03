@@ -108,7 +108,8 @@ export default function Estimate() {
       const result = await response.json()
       setEstimate(result.estimate)
       const savedCM = result.estimate.profit_margin ?? 0.40
-      setContributionPct(savedCM)
+      const clamped = Math.min(0.60, Math.max(0.35, savedCM))
+      setContributionPct(clamped)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load estimate')
     } finally {
