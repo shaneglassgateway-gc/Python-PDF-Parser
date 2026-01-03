@@ -44,8 +44,8 @@ export default function Navigation() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link to="/history" className="flex items-center">
-                <img src="/logo.png" alt="Gateway Estimator" className="h-8 w-8" />
-                <span className="ml-2 text-xl font-bold text-gray-900">
+                <img src="/logo.png" alt="Gateway Estimator" className="h-12 w-12 object-contain" />
+                <span className="ml-3 text-xl font-bold text-gray-900">
                   Gateway Estimator
                 </span>
               </Link>
