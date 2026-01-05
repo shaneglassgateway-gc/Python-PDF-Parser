@@ -177,18 +177,35 @@ export function calculateLaborCosts(
 ): LaborItem[] {
   const laborItems: LaborItem[] = []
   const effectiveSquares = Math.max(0, measurements.roofAreaRounded ?? Math.ceil(measurements.roofArea))
+  const defaults: Record<string, { ps?: number; plf?: number }> = {
+    'Standard Install': { ps: 95 },
+    'No Trailer Access': { ps: 20 },
+    'Second Story': { ps: 10 },
+    'Third Story': { ps: 40 },
+    '2nd Layer': { ps: 15 },
+    'Hand Load Materials': { ps: 10 },
+    'High Pitch 8/12': { ps: 10 },
+    'High Pitch 9/12': { ps: 15 },
+    'High Pitch 10/12': { ps: 20 },
+    'High Pitch 11/12': { ps: 25 },
+    'High Pitch 12/12+': { ps: 30 },
+    'Ridge Vent Install': { plf: 2 },
+    'Mansard Install': { ps: 350 },
+    'Excess Weight Dump Fee': { ps: 750 },
+  }
   
   // Base installation cost
   const baseInstall = laborRates.find(rate => rate.conditionType === 'Standard Install')
   if (baseInstall) {
+    const rps = defaults['Standard Install'].ps ?? baseInstall.ratePerSquare ?? 0
     laborItems.push({
       id: baseInstall.id,
       conditionType: baseInstall.conditionType,
       description: baseInstall.description,
-      ratePerSquare: baseInstall.ratePerSquare,
+      ratePerSquare: rps,
       ratePerLinearFoot: baseInstall.ratePerLinearFoot,
       quantity: effectiveSquares,
-      totalCost: effectiveSquares * (baseInstall.ratePerSquare || 0)
+      totalCost: effectiveSquares * rps
     })
   }
   
@@ -196,27 +213,29 @@ export function calculateLaborCosts(
   if (measurements.thirdStory) {
     const thirdStory = laborRates.find(rate => rate.conditionType === 'Third Story')
     if (thirdStory) {
+      const rps = defaults['Third Story'].ps ?? thirdStory.ratePerSquare ?? 0
       laborItems.push({
         id: thirdStory.id,
         conditionType: thirdStory.conditionType,
         description: thirdStory.description,
-        ratePerSquare: thirdStory.ratePerSquare,
+        ratePerSquare: rps,
         ratePerLinearFoot: thirdStory.ratePerLinearFoot,
         quantity: effectiveSquares,
-        totalCost: effectiveSquares * (thirdStory.ratePerSquare || 0)
+        totalCost: effectiveSquares * rps
       })
     }
   } else if (measurements.stories >= 2) {
     const secondStory = laborRates.find(rate => rate.conditionType === 'Second Story')
     if (secondStory) {
+      const rps = defaults['Second Story'].ps ?? secondStory.ratePerSquare ?? 0
       laborItems.push({
         id: secondStory.id,
         conditionType: secondStory.conditionType,
         description: secondStory.description,
-        ratePerSquare: secondStory.ratePerSquare,
+        ratePerSquare: rps,
         ratePerLinearFoot: secondStory.ratePerLinearFoot,
         quantity: effectiveSquares,
-        totalCost: effectiveSquares * (secondStory.ratePerSquare || 0)
+        totalCost: effectiveSquares * rps
       })
     }
   }
@@ -236,14 +255,15 @@ export function calculateLaborCosts(
     const rate = laborRates.find(rate => rate.conditionType === match.type)
     if (!rate) continue
     const sq = Math.max(0, part.squares || 0)
+    const rps = defaults[match.type].ps ?? rate.ratePerSquare ?? 0
     laborItems.push({
       id: rate.id,
       conditionType: rate.conditionType,
       description: rate.description,
-      ratePerSquare: rate.ratePerSquare,
+      ratePerSquare: rps,
       ratePerLinearFoot: rate.ratePerLinearFoot,
       quantity: sq,
-      totalCost: sq * (rate.ratePerSquare || 0)
+      totalCost: sq * rps
     })
   }
   
@@ -251,14 +271,15 @@ export function calculateLaborCosts(
   if (!measurements.hasTrailerAccess) {
     const noTrailer = laborRates.find(rate => rate.conditionType === 'No Trailer Access')
     if (noTrailer) {
+      const rps = defaults['No Trailer Access'].ps ?? noTrailer.ratePerSquare ?? 0
       laborItems.push({
         id: noTrailer.id,
         conditionType: noTrailer.conditionType,
         description: noTrailer.description,
-        ratePerSquare: noTrailer.ratePerSquare,
+        ratePerSquare: rps,
         ratePerLinearFoot: noTrailer.ratePerLinearFoot,
         quantity: effectiveSquares,
-        totalCost: effectiveSquares * (noTrailer.ratePerSquare || 0)
+        totalCost: effectiveSquares * rps
       })
     }
   }
@@ -266,14 +287,15 @@ export function calculateLaborCosts(
   if (measurements.hasSecondLayer) {
     const secondLayer = laborRates.find(rate => rate.conditionType === '2nd Layer')
     if (secondLayer) {
+      const rps = defaults['2nd Layer'].ps ?? secondLayer.ratePerSquare ?? 0
       laborItems.push({
         id: secondLayer.id,
         conditionType: secondLayer.conditionType,
         description: secondLayer.description,
-        ratePerSquare: secondLayer.ratePerSquare,
+        ratePerSquare: rps,
         ratePerLinearFoot: secondLayer.ratePerLinearFoot,
         quantity: effectiveSquares,
-        totalCost: effectiveSquares * (secondLayer.ratePerSquare || 0)
+        totalCost: effectiveSquares * rps
       })
     }
   }
@@ -281,28 +303,30 @@ export function calculateLaborCosts(
   // Ridge vent installation
   const ridgeVent = laborRates.find(rate => rate.conditionType === 'Ridge Vent Install')
   if (ridgeVent && measurements.hasRidgeVent && measurements.ridgesLength > 0) {
+    const rlf = defaults['Ridge Vent Install'].plf ?? ridgeVent.ratePerLinearFoot ?? 0
     laborItems.push({
       id: ridgeVent.id,
       conditionType: ridgeVent.conditionType,
       description: ridgeVent.description,
       ratePerSquare: ridgeVent.ratePerSquare,
-      ratePerLinearFoot: ridgeVent.ratePerLinearFoot,
+      ratePerLinearFoot: rlf,
       quantity: measurements.ridgesLength,
-      totalCost: measurements.ridgesLength * (ridgeVent.ratePerLinearFoot || 0)
+      totalCost: measurements.ridgesLength * rlf
     })
   }
 
   // Hand load materials
   const handLoad = laborRates.find(rate => rate.conditionType === 'Hand Load Materials')
   if (handLoad && measurements.handLoadMaterials) {
+    const rps = defaults['Hand Load Materials'].ps ?? handLoad.ratePerSquare ?? 0
     laborItems.push({
       id: handLoad.id,
       conditionType: handLoad.conditionType,
       description: handLoad.description,
-      ratePerSquare: handLoad.ratePerSquare,
+      ratePerSquare: rps,
       ratePerLinearFoot: handLoad.ratePerLinearFoot,
       quantity: effectiveSquares,
-      totalCost: effectiveSquares * (handLoad.ratePerSquare || 0)
+      totalCost: effectiveSquares * rps
     })
   }
 
