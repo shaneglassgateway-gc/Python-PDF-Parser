@@ -90,7 +90,7 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
     
     if (pythonCmd) {
       try {
-        const { stdout, stderr } = await execAsync(`${pythonCmd} eagleview_parser.py "${filePath}"`)
+        const { stdout, stderr } = await execAsync(`${pythonCmd} "EagleView_Parser2.py" "${filePath}"`)
         if (stderr) {
           console.warn('Parser warnings:', stderr)
         }
@@ -174,11 +174,48 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
       lowPitchArea: lowPitchSq || 0,
       pitchBreakdown,
     }
+    const structuresArr = Array.isArray(parsedData?.structures) ? parsedData.structures : []
+    const mappedStructures = structuresArr.map((s: any) => {
+      const sb = Array.isArray(s?.pitch_breakdown) ? s.pitch_breakdown.map((p: any) => ({
+        pitch: String(p.pitch || ''),
+        squares: (parseFloat(p.area_sqft || p.area || 0) / 100) || 0,
+      })) : []
+      const sw = s?.suggested_waste?.squares ? parseFloat(s.suggested_waste.squares) : 0
+      const sa = parseFloat(s?.total_area_sqft || 0)
+      return {
+        roofArea: (sa / 100) || 0,
+        roofAreaRounded: Math.ceil(sw || (sa / 100)) || 0,
+        wasteSquares: sw || 0,
+        eavesLength: parseFloat(s?.eaves_ft || 0) || 0,
+        rakesLength: parseFloat(s?.rakes_ft || 0) || 0,
+        valleysLength: parseFloat(s?.valleys_ft || 0) || 0,
+        hipsLength: parseFloat(s?.hips_ft || 0) || 0,
+        ridgesLength: parseFloat(s?.ridges_ft || 0) || 0,
+        pitch: (() => {
+          const m2 = String(s?.predominant_pitch || '').match(/(\d+)\/(\d+)/)
+          return m2 ? (parseFloat(m2[1]) / (parseFloat(m2[2]) || 12)) : 0
+        })(),
+        stories: storiesNum || 1,
+        hasTrailerAccess: false,
+        hasSecondLayer: false,
+        hasRidgeVent: false,
+        thirdStory: false,
+        handLoadMaterials: false,
+        lowPitchArea: (sb || []).filter((p: any) => {
+          const m3 = String(p.pitch || '').match(/(\d+)\/(\d+)/)
+          if (!m3) return false
+          const num = parseFloat(m3[1])
+          const den = parseFloat(m3[2] || '12') || 12
+          return (num/den) <= (2/12)
+        }).reduce((sum: number, p: any) => sum + (p.squares || 0), 0),
+        pitchBreakdown: sb,
+      }
+    })
 
     // Clean up uploaded file
     try { fs.unlinkSync(filePath) } catch {}
     
-    res.json({ success: true, data: mapped, message: 'EagleView file parsed successfully' })
+    res.json({ success: true, data: { ...mapped, structures: mappedStructures }, message: 'EagleView file parsed successfully' })
   } catch (error) {
     console.error('Parse error:', error)
     res.status(500).json({ error: 'Failed to parse EagleView file' })

@@ -47,6 +47,7 @@ export default function Upload() {
     secondLayer: false,
     handLoadMaterials: false,
   })
+  const [includeDetachedStructure, setIncludeDetachedStructure] = useState(false)
   const [accessories, setAccessories] = useState({
     leadBootsQty: 0,
     pvcBootsQty: 0,
@@ -140,6 +141,67 @@ export default function Upload() {
     }
   }
 
+  const structureToMeasurements = (s: any) => {
+    const pitchBreakdown = (s.pitchBreakdown || []).map((p: any) => ({ pitch: String(p.pitch || ''), squares: p.squares || 0 }))
+    return {
+      roofArea: s.roofArea || 0,
+      roofAreaRounded: s.roofAreaRounded || Math.ceil(s.roofArea || 0),
+      eavesLength: s.eavesLength || 0,
+      rakesLength: s.rakesLength || 0,
+      valleysLength: s.valleysLength || 0,
+      hipsLength: s.hipsLength || 0,
+      ridgesLength: s.ridgesLength || 0,
+      pitch: 0,
+      stories: s.stories || 1,
+      hasTrailerAccess: !options.noTrailerAccess,
+      hasSecondLayer: options.secondLayer,
+      hasRidgeVent: options.ridgeVent,
+      thirdStory: options.thirdStory,
+      handLoadMaterials: options.handLoadMaterials,
+      lowPitchArea: s.lowPitchArea || 0,
+      pitchBreakdown,
+    }
+  }
+
+  const combineMeasurements = (structures: any[]) => {
+    const sum = (arr: number[]) => arr.reduce((a,b)=>a+b,0)
+    const pitches: Record<string, number> = {}
+    structures.forEach(s => {
+      (s.pitchBreakdown || []).forEach((p: any) => {
+        const key = String(p.pitch || '')
+        pitches[key] = (pitches[key] || 0) + (p.squares || 0)
+      })
+    })
+    const pitchBreakdown = Object.entries(pitches).map(([pitch, squares]) => ({ pitch, squares }))
+    const stories = Math.max(...structures.map(s => s.stories || 1), 1)
+    const roofArea = sum(structures.map(s => s.roofArea || 0))
+    const roofAreaRounded = Math.ceil(sum(structures.map(s => s.roofAreaRounded || Math.ceil((s.roofArea || 0)))))
+    const eavesLength = sum(structures.map(s => s.eavesLength || 0))
+    const rakesLength = sum(structures.map(s => s.rakesLength || 0))
+    const valleysLength = sum(structures.map(s => s.valleysLength || 0))
+    const hipsLength = sum(structures.map(s => s.hipsLength || 0))
+    const ridgesLength = sum(structures.map(s => s.ridgesLength || 0))
+    const lowPitchArea = sum(structures.map(s => s.lowPitchArea || 0))
+    return {
+      roofArea,
+      roofAreaRounded,
+      eavesLength,
+      rakesLength,
+      valleysLength,
+      hipsLength,
+      ridgesLength,
+      pitch: 0,
+      stories,
+      hasTrailerAccess: !options.noTrailerAccess,
+      hasSecondLayer: options.secondLayer,
+      hasRidgeVent: options.ridgeVent,
+      thirdStory: options.thirdStory,
+      handLoadMaterials: options.handLoadMaterials,
+      lowPitchArea,
+      pitchBreakdown,
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -165,20 +227,29 @@ export default function Upload() {
       }
       
       // Create estimate data
-      const estimateData = {
-        customer_name: jobDetails.customerName,
-        customer_address: jobDetails.customerAddress,
-        project_type: jobDetails.projectType,
-        notes: jobDetails.notes,
-        eagleview_data: eagleViewData,
-        roof_measurements: {
+      const structures = Array.isArray((eagleViewData as any)?.structures) ? (eagleViewData as any).structures : []
+      let roofMeasurements: any
+      if (structures.length >= 2 && includeDetachedStructure) {
+        roofMeasurements = combineMeasurements([structures[0], structures[1]])
+      } else if (structures.length >= 1) {
+        roofMeasurements = structureToMeasurements(structures[0])
+      } else {
+        roofMeasurements = {
           ...eagleViewData,
           hasTrailerAccess: !options.noTrailerAccess,
           hasSecondLayer: options.secondLayer,
           hasRidgeVent: options.ridgeVent,
           thirdStory: options.thirdStory,
           handLoadMaterials: options.handLoadMaterials,
-        },
+        }
+      }
+      const estimateData = {
+        customer_name: jobDetails.customerName,
+        customer_address: jobDetails.customerAddress,
+        project_type: jobDetails.projectType,
+        notes: jobDetails.notes,
+        eagleview_data: eagleViewData,
+        roof_measurements: roofMeasurements,
         accessories: [
           ...(accessories.leadBootsQty > 0 ? [{ key: 'leadBoots', quantity: accessories.leadBootsQty }] : []),
           ...(accessories.pvcBootsQty > 0 ? [{ key: 'pvcBoots', quantity: accessories.pvcBootsQty }] : []),
@@ -377,6 +448,14 @@ export default function Upload() {
                 {/* Roofing Accessories */}
                 <div className="col-span-1 md:col-span-2">
                   <h3 className="text-md font-semibold text-gray-900 mb-2">Roofing Accessories</h3>
+                  {Array.isArray((eagleViewData as any)?.structures) && (eagleViewData as any)?.structures.length >= 2 && (
+                    <div className="mb-3">
+                      <label className="flex items-center space-x-2">
+                        <input type="checkbox" checked={includeDetachedStructure} onChange={(e)=>setIncludeDetachedStructure(e.target.checked)} />
+                        <span>Include Detached Structure</span>
+                      </label>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex items-center justify-between border rounded-md p-3">
                       <span>Lead Pipe Boots</span>
