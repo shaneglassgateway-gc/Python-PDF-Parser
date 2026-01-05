@@ -341,7 +341,8 @@ export function calculateTotalCosts(
 ) {
   const totalMaterialCost = materials.reduce((sum, item) => sum + item.totalCost, 0)
   const totalLaborCost = labor.reduce((sum, item) => sum + item.totalCost, 0)
-  const subtotal = totalMaterialCost + totalLaborCost
+  const materialTax = totalMaterialCost * 0.08
+  const subtotal = totalMaterialCost + materialTax + totalLaborCost
   const x = Math.max(0.26, Math.min(0.51, contributionX))
   const totalCost = x > 0 ? subtotal / x : subtotal
   const profit = totalCost - subtotal
@@ -350,6 +351,7 @@ export function calculateTotalCosts(
   return {
     totalMaterialCost,
     totalLaborCost,
+    materialTax,
     subtotal,
     profit,
     totalCost,
