@@ -14,6 +14,19 @@ export default defineConfig({
     }),
     tsconfigPaths(),
   ],
+  build: {
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          supabase: ['@supabase/supabase-js'],
+          icons: ['lucide-react'],
+        }
+      }
+    }
+  },
   server: {
     proxy: {
       '/api': {
