@@ -48,15 +48,10 @@ export default function Upload() {
     handLoadMaterials: false,
   })
   const [accessories, setAccessories] = useState({
-    leadBootsEnabled: false,
     leadBootsQty: 0,
-    pvcBootsEnabled: false,
     pvcBootsQty: 0,
-    turtleVentsEnabled: false,
     turtleVentsQty: 0,
-    rainCapEnabled: false,
     rainCapQty: 0,
-    brickChimneyEnabled: false,
     brickChimneyQty: 0,
   })
   const incQty = (key: keyof typeof accessories) => {
@@ -185,11 +180,11 @@ export default function Upload() {
           handLoadMaterials: options.handLoadMaterials,
         },
         accessories: [
-          ...(accessories.leadBootsEnabled && accessories.leadBootsQty > 0 ? [{ key: 'leadBoots', quantity: accessories.leadBootsQty }] : []),
-          ...(accessories.pvcBootsEnabled && accessories.pvcBootsQty > 0 ? [{ key: 'pvcBoots', quantity: accessories.pvcBootsQty }] : []),
-          ...(accessories.turtleVentsEnabled && accessories.turtleVentsQty > 0 ? [{ key: 'turtleVents', quantity: accessories.turtleVentsQty }] : []),
-          ...(accessories.rainCapEnabled && accessories.rainCapQty > 0 ? [{ key: 'rainCap', quantity: accessories.rainCapQty }] : []),
-          ...(accessories.brickChimneyEnabled && accessories.brickChimneyQty > 0 ? [{ key: 'brickChimneyFlashing', quantity: accessories.brickChimneyQty }] : []),
+          ...(accessories.leadBootsQty > 0 ? [{ key: 'leadBoots', quantity: accessories.leadBootsQty }] : []),
+          ...(accessories.pvcBootsQty > 0 ? [{ key: 'pvcBoots', quantity: accessories.pvcBootsQty }] : []),
+          ...(accessories.turtleVentsQty > 0 ? [{ key: 'turtleVents', quantity: accessories.turtleVentsQty }] : []),
+          ...(accessories.rainCapQty > 0 ? [{ key: 'rainCap', quantity: accessories.rainCapQty }] : []),
+          ...(accessories.brickChimneyQty > 0 ? [{ key: 'brickChimneyFlashing', quantity: accessories.brickChimneyQty }] : []),
         ],
         status: 'draft'
       }
@@ -384,102 +379,87 @@ export default function Upload() {
                   <h3 className="text-md font-semibold text-gray-900 mb-2">Roofing Accessories</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex items-center justify-between border rounded-md p-3">
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox" checked={accessories.leadBootsEnabled} onChange={(e)=>setAccessories(p=>({...p,leadBootsEnabled:e.target.checked}))} />
-                        <span>Lead Pipe Boots</span>
-                      </label>
+                      <span>Lead Pipe Boots</span>
                       <div className="flex items-center space-x-2">
-                        <button type="button" disabled={!accessories.leadBootsEnabled || parsing} onClick={()=>decQty('leadBootsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                        <button type="button" disabled={parsing} onClick={()=>decQty('leadBootsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
                         <input
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          disabled={!accessories.leadBootsEnabled || parsing}
+                          disabled={parsing}
                           value={accessories.leadBootsQty || ''}
                           onChange={(e)=>setQtySanitized('leadBootsQty', e.target.value)}
                           className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
                         />
-                        <button type="button" disabled={!accessories.leadBootsEnabled || parsing} onClick={()=>incQty('leadBootsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                        <button type="button" disabled={parsing} onClick={()=>incQty('leadBootsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-between border rounded-md p-3">
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox" checked={accessories.pvcBootsEnabled} onChange={(e)=>setAccessories(p=>({...p,pvcBootsEnabled:e.target.checked}))} />
-                        <span>PVC Pipe Boots</span>
-                      </label>
+                      <span>PVC Pipe Boots</span>
                       <div className="flex items-center space-x-2">
-                        <button type="button" disabled={!accessories.pvcBootsEnabled || parsing} onClick={()=>decQty('pvcBootsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                        <button type="button" disabled={parsing} onClick={()=>decQty('pvcBootsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
                         <input
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          disabled={!accessories.pvcBootsEnabled || parsing}
+                          disabled={parsing}
                           value={accessories.pvcBootsQty || ''}
                           onChange={(e)=>setQtySanitized('pvcBootsQty', e.target.value)}
                           className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
                         />
-                        <button type="button" disabled={!accessories.pvcBootsEnabled || parsing} onClick={()=>incQty('pvcBootsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                        <button type="button" disabled={parsing} onClick={()=>incQty('pvcBootsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-between border rounded-md p-3">
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox" checked={accessories.turtleVentsEnabled} onChange={(e)=>setAccessories(p=>({...p,turtleVentsEnabled:e.target.checked}))} />
-                        <span>Turtle Vents</span>
-                      </label>
+                      <span>Turtle Vents</span>
                       <div className="flex items-center space-x-2">
-                        <button type="button" disabled={!accessories.turtleVentsEnabled || parsing} onClick={()=>decQty('turtleVentsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                        <button type="button" disabled={parsing} onClick={()=>decQty('turtleVentsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
                         <input
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          disabled={!accessories.turtleVentsEnabled || parsing}
+                          disabled={parsing}
                           value={accessories.turtleVentsQty || ''}
                           onChange={(e)=>setQtySanitized('turtleVentsQty', e.target.value)}
                           className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
                         />
-                        <button type="button" disabled={!accessories.turtleVentsEnabled || parsing} onClick={()=>incQty('turtleVentsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                        <button type="button" disabled={parsing} onClick={()=>incQty('turtleVentsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-between border rounded-md p-3">
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox" checked={accessories.rainCapEnabled} onChange={(e)=>setAccessories(p=>({...p,rainCapEnabled:e.target.checked}))} />
-                        <span>Rain Cap</span>
-                      </label>
+                      <span>Rain Cap</span>
                       <div className="flex items-center space-x-2">
-                        <button type="button" disabled={!accessories.rainCapEnabled || parsing} onClick={()=>decQty('rainCapQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                        <button type="button" disabled={parsing} onClick={()=>decQty('rainCapQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
                         <input
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          disabled={!accessories.rainCapEnabled || parsing}
+                          disabled={parsing}
                           value={accessories.rainCapQty || ''}
                           onChange={(e)=>setQtySanitized('rainCapQty', e.target.value)}
                           className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
                         />
-                        <button type="button" disabled={!accessories.rainCapEnabled || parsing} onClick={()=>incQty('rainCapQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                        <button type="button" disabled={parsing} onClick={()=>incQty('rainCapQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-between border rounded-md p-3">
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox" checked={accessories.brickChimneyEnabled} onChange={(e)=>setAccessories(p=>({...p,brickChimneyEnabled:e.target.checked}))} />
-                        <span>Brick Chimney Flashing</span>
-                      </label>
+                      <span>Brick Chimney Flashing</span>
                       <div className="flex items-center space-x-2">
-                        <button type="button" disabled={!accessories.brickChimneyEnabled || parsing} onClick={()=>decQty('brickChimneyQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                        <button type="button" disabled={parsing} onClick={()=>decQty('brickChimneyQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
                         <input
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          disabled={!accessories.brickChimneyEnabled || parsing}
+                          disabled={parsing}
                           value={accessories.brickChimneyQty || ''}
                           onChange={(e)=>setQtySanitized('brickChimneyQty', e.target.value)}
                           className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
                         />
-                        <button type="button" disabled={!accessories.brickChimneyEnabled || parsing} onClick={()=>incQty('brickChimneyQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                        <button type="button" disabled={parsing} onClick={()=>incQty('brickChimneyQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
                       </div>
                     </div>
                   </div>
