@@ -59,6 +59,17 @@ export default function Upload() {
     brickChimneyEnabled: false,
     brickChimneyQty: 0,
   })
+  const incQty = (key: keyof typeof accessories) => {
+    setAccessories(p => ({ ...p, [key]: Math.max(0, (p as any)[key] + 1) }))
+  }
+  const decQty = (key: keyof typeof accessories) => {
+    setAccessories(p => ({ ...p, [key]: Math.max(0, (p as any)[key] - 1) }))
+  }
+  const setQtySanitized = (key: keyof typeof accessories, value: string) => {
+    const digits = value.replace(/\D/g, '')
+    const num = digits === '' ? 0 : Math.max(0, parseInt(digits, 10))
+    setAccessories(p => ({ ...p, [key]: num }))
+  }
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -377,14 +388,19 @@ export default function Upload() {
                         <input type="checkbox" checked={accessories.leadBootsEnabled} onChange={(e)=>setAccessories(p=>({...p,leadBootsEnabled:e.target.checked}))} />
                         <span>Lead Pipe Boots</span>
                       </label>
-                      <input
-                        type="number"
-                        min={0}
-                        disabled={!accessories.leadBootsEnabled || parsing}
-                        value={accessories.leadBootsQty}
-                        onChange={(e)=>setAccessories(p=>({...p,leadBootsQty: Math.max(0, parseInt(e.target.value || '0'))}))}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
-                      />
+                      <div className="flex items-center space-x-2">
+                        <button type="button" disabled={!accessories.leadBootsEnabled || parsing} onClick={()=>decQty('leadBootsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          disabled={!accessories.leadBootsEnabled || parsing}
+                          value={accessories.leadBootsQty || ''}
+                          onChange={(e)=>setQtySanitized('leadBootsQty', e.target.value)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
+                        />
+                        <button type="button" disabled={!accessories.leadBootsEnabled || parsing} onClick={()=>incQty('leadBootsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                      </div>
                     </div>
                     
                     <div className="flex items-center justify-between border rounded-md p-3">
@@ -392,14 +408,19 @@ export default function Upload() {
                         <input type="checkbox" checked={accessories.pvcBootsEnabled} onChange={(e)=>setAccessories(p=>({...p,pvcBootsEnabled:e.target.checked}))} />
                         <span>PVC Pipe Boots</span>
                       </label>
-                      <input
-                        type="number"
-                        min={0}
-                        disabled={!accessories.pvcBootsEnabled || parsing}
-                        value={accessories.pvcBootsQty}
-                        onChange={(e)=>setAccessories(p=>({...p,pvcBootsQty: Math.max(0, parseInt(e.target.value || '0'))}))}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
-                      />
+                      <div className="flex items-center space-x-2">
+                        <button type="button" disabled={!accessories.pvcBootsEnabled || parsing} onClick={()=>decQty('pvcBootsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          disabled={!accessories.pvcBootsEnabled || parsing}
+                          value={accessories.pvcBootsQty || ''}
+                          onChange={(e)=>setQtySanitized('pvcBootsQty', e.target.value)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
+                        />
+                        <button type="button" disabled={!accessories.pvcBootsEnabled || parsing} onClick={()=>incQty('pvcBootsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                      </div>
                     </div>
                     
                     <div className="flex items-center justify-between border rounded-md p-3">
@@ -407,14 +428,19 @@ export default function Upload() {
                         <input type="checkbox" checked={accessories.turtleVentsEnabled} onChange={(e)=>setAccessories(p=>({...p,turtleVentsEnabled:e.target.checked}))} />
                         <span>Turtle Vents</span>
                       </label>
-                      <input
-                        type="number"
-                        min={0}
-                        disabled={!accessories.turtleVentsEnabled || parsing}
-                        value={accessories.turtleVentsQty}
-                        onChange={(e)=>setAccessories(p=>({...p,turtleVentsQty: Math.max(0, parseInt(e.target.value || '0'))}))}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
-                      />
+                      <div className="flex items-center space-x-2">
+                        <button type="button" disabled={!accessories.turtleVentsEnabled || parsing} onClick={()=>decQty('turtleVentsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          disabled={!accessories.turtleVentsEnabled || parsing}
+                          value={accessories.turtleVentsQty || ''}
+                          onChange={(e)=>setQtySanitized('turtleVentsQty', e.target.value)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
+                        />
+                        <button type="button" disabled={!accessories.turtleVentsEnabled || parsing} onClick={()=>incQty('turtleVentsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                      </div>
                     </div>
                     
                     <div className="flex items-center justify-between border rounded-md p-3">
@@ -422,14 +448,19 @@ export default function Upload() {
                         <input type="checkbox" checked={accessories.rainCapEnabled} onChange={(e)=>setAccessories(p=>({...p,rainCapEnabled:e.target.checked}))} />
                         <span>Rain Cap</span>
                       </label>
-                      <input
-                        type="number"
-                        min={0}
-                        disabled={!accessories.rainCapEnabled || parsing}
-                        value={accessories.rainCapQty}
-                        onChange={(e)=>setAccessories(p=>({...p,rainCapQty: Math.max(0, parseInt(e.target.value || '0'))}))}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
-                      />
+                      <div className="flex items-center space-x-2">
+                        <button type="button" disabled={!accessories.rainCapEnabled || parsing} onClick={()=>decQty('rainCapQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          disabled={!accessories.rainCapEnabled || parsing}
+                          value={accessories.rainCapQty || ''}
+                          onChange={(e)=>setQtySanitized('rainCapQty', e.target.value)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
+                        />
+                        <button type="button" disabled={!accessories.rainCapEnabled || parsing} onClick={()=>incQty('rainCapQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                      </div>
                     </div>
                     
                     <div className="flex items-center justify-between border rounded-md p-3">
@@ -437,14 +468,19 @@ export default function Upload() {
                         <input type="checkbox" checked={accessories.brickChimneyEnabled} onChange={(e)=>setAccessories(p=>({...p,brickChimneyEnabled:e.target.checked}))} />
                         <span>Brick Chimney Flashing</span>
                       </label>
-                      <input
-                        type="number"
-                        min={0}
-                        disabled={!accessories.brickChimneyEnabled || parsing}
-                        value={accessories.brickChimneyQty}
-                        onChange={(e)=>setAccessories(p=>({...p,brickChimneyQty: Math.max(0, parseInt(e.target.value || '0'))}))}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
-                      />
+                      <div className="flex items-center space-x-2">
+                        <button type="button" disabled={!accessories.brickChimneyEnabled || parsing} onClick={()=>decQty('brickChimneyQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          disabled={!accessories.brickChimneyEnabled || parsing}
+                          value={accessories.brickChimneyQty || ''}
+                          onChange={(e)=>setQtySanitized('brickChimneyQty', e.target.value)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
+                        />
+                        <button type="button" disabled={!accessories.brickChimneyEnabled || parsing} onClick={()=>incQty('brickChimneyQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                      </div>
                     </div>
                   </div>
                 </div>
