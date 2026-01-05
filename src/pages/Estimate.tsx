@@ -177,7 +177,31 @@ export default function Estimate() {
 
       // Calculate material quantities and costs
       const materials = calculateMaterialQuantities(estimate.roof_measurements, ruleData)
-      const materialsWithPrices = applyMaterialPrices(materials, priceData)
+      
+      const accessoryMap: Record<string, { name: string; unit: string; category: string }> = {
+        leadBoots: { name: 'Mayco Industries Lead Boot with 12" x 12" x 14" Base', unit: 'EA', category: 'Accessories' },
+        pvcBoots: { name: 'TRI-BUILT 4-N-1 Aluminum Base Flashing', unit: 'PC', category: 'Accessories' },
+        turtleVents: { name: 'TRI-BUILT 750-S Aluminum Slant Back Roof Louver with Screen', unit: 'PC', category: 'Accessories' },
+        rainCap: { name: 'TRI-BUILT Multicap Vent Cap', unit: 'PC', category: 'Accessories' },
+        brickChimneyFlashing: { name: 'FlashMaster 32" Chimney Flashing Kit', unit: 'EA', category: 'Accessories' },
+      }
+      const extras: any[] = Array.isArray((estimate as any).accessories) ? (estimate as any).accessories : []
+      const accessoryItems = extras
+        .filter((a: any) => a && accessoryMap[a.key] && a.quantity > 0)
+        .map((a: any) => {
+          const meta = accessoryMap[a.key]
+          return {
+            id: `accessory-${a.key}`,
+            itemName: meta.name,
+            unitOfMeasure: meta.unit,
+            pricePerUnit: 0,
+            category: meta.category,
+            quantity: a.quantity,
+            totalCost: 0,
+          }
+        })
+      
+      const materialsWithPrices = applyMaterialPrices([...materials, ...accessoryItems], priceData)
       setMaterialCosts(materialsWithPrices)
 
       // Calculate labor costs

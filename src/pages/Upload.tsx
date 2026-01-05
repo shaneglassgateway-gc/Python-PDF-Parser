@@ -47,6 +47,18 @@ export default function Upload() {
     secondLayer: false,
     handLoadMaterials: false,
   })
+  const [accessories, setAccessories] = useState({
+    leadBootsEnabled: false,
+    leadBootsQty: 0,
+    pvcBootsEnabled: false,
+    pvcBootsQty: 0,
+    turtleVentsEnabled: false,
+    turtleVentsQty: 0,
+    rainCapEnabled: false,
+    rainCapQty: 0,
+    brickChimneyEnabled: false,
+    brickChimneyQty: 0,
+  })
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -161,6 +173,13 @@ export default function Upload() {
           thirdStory: options.thirdStory,
           handLoadMaterials: options.handLoadMaterials,
         },
+        accessories: [
+          ...(accessories.leadBootsEnabled && accessories.leadBootsQty > 0 ? [{ key: 'leadBoots', quantity: accessories.leadBootsQty }] : []),
+          ...(accessories.pvcBootsEnabled && accessories.pvcBootsQty > 0 ? [{ key: 'pvcBoots', quantity: accessories.pvcBootsQty }] : []),
+          ...(accessories.turtleVentsEnabled && accessories.turtleVentsQty > 0 ? [{ key: 'turtleVents', quantity: accessories.turtleVentsQty }] : []),
+          ...(accessories.rainCapEnabled && accessories.rainCapQty > 0 ? [{ key: 'rainCap', quantity: accessories.rainCapQty }] : []),
+          ...(accessories.brickChimneyEnabled && accessories.brickChimneyQty > 0 ? [{ key: 'brickChimneyFlashing', quantity: accessories.brickChimneyQty }] : []),
+        ],
         status: 'draft'
       }
       
@@ -346,6 +365,87 @@ export default function Upload() {
                       <input type="checkbox" checked={options.handLoadMaterials} onChange={(e)=>setOptions(p=>({...p,handLoadMaterials:e.target.checked}))} />
                       <span>Hand Load Materials (+$/SQ)</span>
                     </label>
+                  </div>
+                </div>
+                
+                {/* Roofing Accessories */}
+                <div className="col-span-1 md:col-span-2">
+                  <h3 className="text-md font-semibold text-gray-900 mb-2">Roofing Accessories</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between border rounded-md p-3">
+                      <label className="flex items-center space-x-2">
+                        <input type="checkbox" checked={accessories.leadBootsEnabled} onChange={(e)=>setAccessories(p=>({...p,leadBootsEnabled:e.target.checked}))} />
+                        <span>Lead Pipe Boots</span>
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        disabled={!accessories.leadBootsEnabled || parsing}
+                        value={accessories.leadBootsQty}
+                        onChange={(e)=>setAccessories(p=>({...p,leadBootsQty: Math.max(0, parseInt(e.target.value || '0'))}))}
+                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between border rounded-md p-3">
+                      <label className="flex items-center space-x-2">
+                        <input type="checkbox" checked={accessories.pvcBootsEnabled} onChange={(e)=>setAccessories(p=>({...p,pvcBootsEnabled:e.target.checked}))} />
+                        <span>PVC Pipe Boots</span>
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        disabled={!accessories.pvcBootsEnabled || parsing}
+                        value={accessories.pvcBootsQty}
+                        onChange={(e)=>setAccessories(p=>({...p,pvcBootsQty: Math.max(0, parseInt(e.target.value || '0'))}))}
+                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between border rounded-md p-3">
+                      <label className="flex items-center space-x-2">
+                        <input type="checkbox" checked={accessories.turtleVentsEnabled} onChange={(e)=>setAccessories(p=>({...p,turtleVentsEnabled:e.target.checked}))} />
+                        <span>Turtle Vents</span>
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        disabled={!accessories.turtleVentsEnabled || parsing}
+                        value={accessories.turtleVentsQty}
+                        onChange={(e)=>setAccessories(p=>({...p,turtleVentsQty: Math.max(0, parseInt(e.target.value || '0'))}))}
+                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between border rounded-md p-3">
+                      <label className="flex items-center space-x-2">
+                        <input type="checkbox" checked={accessories.rainCapEnabled} onChange={(e)=>setAccessories(p=>({...p,rainCapEnabled:e.target.checked}))} />
+                        <span>Rain Cap</span>
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        disabled={!accessories.rainCapEnabled || parsing}
+                        value={accessories.rainCapQty}
+                        onChange={(e)=>setAccessories(p=>({...p,rainCapQty: Math.max(0, parseInt(e.target.value || '0'))}))}
+                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between border rounded-md p-3">
+                      <label className="flex items-center space-x-2">
+                        <input type="checkbox" checked={accessories.brickChimneyEnabled} onChange={(e)=>setAccessories(p=>({...p,brickChimneyEnabled:e.target.checked}))} />
+                        <span>Brick Chimney Flashing</span>
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        disabled={!accessories.brickChimneyEnabled || parsing}
+                        value={accessories.brickChimneyQty}
+                        onChange={(e)=>setAccessories(p=>({...p,brickChimneyQty: Math.max(0, parseInt(e.target.value || '0'))}))}
+                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right"
+                      />
+                    </div>
                   </div>
                 </div>
                 
