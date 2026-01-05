@@ -474,6 +474,11 @@ export default function Estimate() {
                 </p>
               </div>
             </div>
+            <div className="mt-4 text-center">
+              <p className="text-xs text-gray-500">
+                Materials + Labor + Material Sales Tax (8%): ${((totalCosts as any).materialTax || 0).toFixed(2)} • Subtotal: ${totalCosts.subtotal.toFixed(2)}
+              </p>
+            </div>
           </div>
         </div>
       </div>
