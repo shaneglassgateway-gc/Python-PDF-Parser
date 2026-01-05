@@ -91,12 +91,6 @@ export function calculateMaterialQuantities(
       case 'roof_area_sq / 15':
         quantity = Math.ceil(effectiveSquares / 15)
         break
-      case 'roof_area_sq / 10':
-        quantity = Math.ceil(effectiveSquares / 10)
-        break
-      case 'roof_area_sq / 15':
-        quantity = Math.ceil(effectiveSquares / 15)
-        break
       case 'low_pitch_area_sq':
         quantity = Math.ceil(measurements.lowPitchArea)
         break
