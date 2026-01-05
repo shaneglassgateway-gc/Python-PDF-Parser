@@ -333,6 +333,9 @@ export default function Upload() {
                       <p>Roof Area: {(eagleViewData.roofArea ?? 0).toFixed(1)} squares</p>
                       <p>Pitch: {(eagleViewData.pitch ?? 0).toFixed(2)}</p>
                       <p>Stories: {eagleViewData.stories}</p>
+                      {Array.isArray((eagleViewData as any)?.structures) && (
+                        <p>Structures detected: {(eagleViewData as any).structures.length}</p>
+                      )}
                     </div>
                   )}
                 </div>

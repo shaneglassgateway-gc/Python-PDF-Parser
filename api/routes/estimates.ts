@@ -5,6 +5,7 @@ import path from 'path'
 import fs from 'fs'
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { fileURLToPath } from 'url'
 
 const execAsync = promisify(exec)
 const router = Router()
@@ -66,7 +67,7 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
     let parsedData: any = null
     let lastError: any = null
 
-    const parseUrl = process.env.PYTHON_PARSE_URL || 'http://127.0.0.1:8001/parse'
+    const parseUrl = process.env.PYTHON_PARSE_URL || ''
     if (parseUrl) {
       try {
         const buffer = fs.readFileSync(filePath)
@@ -90,7 +91,10 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
     
     if (pythonCmd) {
       try {
-        const { stdout, stderr } = await execAsync(`${pythonCmd} "EagleView_Parser2.py" "${filePath}"`)
+        const __filename = fileURLToPath(import.meta.url)
+        const __dirname = path.dirname(__filename)
+        const scriptPath = path.resolve(__dirname, '../../EagleView_Parser2.py')
+        const { stdout, stderr } = await execAsync(`${pythonCmd} "${scriptPath}" "${filePath}"`)
         if (stderr) {
           console.warn('Parser warnings:', stderr)
         }
