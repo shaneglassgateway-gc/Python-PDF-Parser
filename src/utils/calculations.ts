@@ -312,16 +312,28 @@ export function calculateLaborCosts(
     })
   }
 
-  // Excess weight dump fee if > 30 squares
-  if (effectiveSquares > 30) {
-    const dumpFee = laborRates.find(rate => rate.conditionType === 'Excess Weight Dump Fee')
-    const fee = dumpFee?.ratePerSquare || 750
+  // Base dump fee
+  const baseDump = laborRates.find(rate => rate.conditionType === 'Dump Fee')
+  const baseFee = baseDump?.ratePerSquare || baseDump?.ratePerLinearFoot || 450
+  laborItems.push({
+    id: baseDump?.id || 'dump-fee-base',
+    conditionType: 'Dump Fee',
+    description: baseDump?.description || 'Standard Dump Fee',
+    quantity: 1,
+    totalCost: baseFee
+  } as any)
+  
+  // Excess weight dump fee: +$750 at 30SQ and for every additional 30SQ
+  const extraCount = Math.max(0, Math.floor(effectiveSquares / 30))
+  if (extraCount > 0) {
+    const dumpExtra = laborRates.find(rate => rate.conditionType === 'Excess Weight Dump Fee')
+    const perOcc = dumpExtra?.ratePerSquare || dumpExtra?.ratePerLinearFoot || 750
     laborItems.push({
-      id: dumpFee?.id || 'dump-fee',
+      id: dumpExtra?.id || 'dump-fee-extra',
       conditionType: 'Excess Weight Dump Fee',
-      description: dumpFee?.description || 'Excess Weight Dump Fee (>30SQ)',
-      quantity: 1,
-      totalCost: fee
+      description: dumpExtra?.description || 'Excess Weight Dump Fee',
+      quantity: extraCount,
+      totalCost: extraCount * perOcc
     } as any)
   }
   
