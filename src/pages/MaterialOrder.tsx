@@ -179,78 +179,62 @@ export default function MaterialOrder() {
   }
 
   const buildMeasurements = () => {
-    const structs = Array.isArray((data as any)?.structures) ? (data as any).structures : []
-    const pick = (s: any) => {
-      const meas = s?.measurements || {}
+    try {
+      const parsed = data || {}
+      const hasStructs = Array.isArray((parsed as any)?.structures) && (parsed as any).structures.length > 0
+      const measRaw = includeDetached && hasStructs ? getCombinedMeasurements(parsed) : getStructure1Measurements(parsed)
+      if (!measRaw) {
+        const roof = (parsed as any)?.roof_measurements || {}
+        return {
+          roofArea: ((parseFloat(roof?.total_area_sqft || 0))/100)||0,
+          roofAreaRounded: Math.ceil(((parseFloat(roof?.total_area_sqft || 0))/100)||0),
+          eavesLength: parseFloat(roof?.eaves_ft || 0) || 0,
+          rakesLength: parseFloat(roof?.rakes_ft || 0) || 0,
+          valleysLength: parseFloat(roof?.valleys_ft || 0) || 0,
+          hipsLength: parseFloat(roof?.hips_ft || 0) || 0,
+          ridgesLength: parseFloat(roof?.ridges_ft || 0) || 0,
+          pitch: 0,
+          stories: 1,
+          hasTrailerAccess: false,
+          hasSecondLayer: false,
+          lowPitchArea: 0,
+          hasRidgeVent: false,
+          pitchBreakdown: [],
+        }
+      }
       return {
-        roofArea: ((parseFloat(s?.total_area_sqft || 0)) / 100) || 0,
-        roofAreaRounded: Math.ceil(((s?.suggested_waste?.squares || 0))) || Math.ceil(((parseFloat(s?.total_area_sqft || 0))/100) || 0),
-        eavesLength: parseFloat(meas?.eaves_ft || 0) || 0,
-        rakesLength: parseFloat(meas?.rakes_ft || 0) || 0,
-        valleysLength: parseFloat(meas?.valleys_ft || 0) || 0,
-        hipsLength: parseFloat(meas?.hips_ft || 0) || 0,
-        ridgesLength: parseFloat(meas?.ridges_ft || 0) || 0,
+        roofArea: ((parseFloat(measRaw?.total_area_sqft || 0))/100)||0,
+        roofAreaRounded: Math.ceil(((measRaw?.suggested_squares || 0))) || Math.ceil(((parseFloat(measRaw?.total_area_sqft || 0))/100)||0),
+        eavesLength: parseFloat((measRaw as any)?.eaves_ft || 0) || 0,
+        rakesLength: parseFloat((measRaw as any)?.rakes_ft || 0) || 0,
+        valleysLength: parseFloat((measRaw as any)?.valleys_ft || 0) || 0,
+        hipsLength: parseFloat((measRaw as any)?.hips_ft || 0) || 0,
+        ridgesLength: parseFloat((measRaw as any)?.ridges_ft || 0) || 0,
         pitch: 0,
         stories: 1,
         hasTrailerAccess: false,
         hasSecondLayer: false,
         lowPitchArea: 0,
         hasRidgeVent: false,
-        pitchBreakdown: ((s?.pitch_breakdown || []) as any[]).map((p:any)=>({ pitch: String(p.pitch||''), squares: ((parseFloat(p.area_sqft||0))/100)||0 }))
+        pitchBreakdown: (((measRaw as any)?.pitch_breakdown || []) as any[]).map((p:any)=>({ pitch: String(p.pitch||''), squares: ((parseFloat(p.area_sqft||0))/100)||0 })),
       }
-    }
-    const combine = (a: any, b: any) => {
-      const measA = a?.measurements || {}
-      const measB = b?.measurements || {}
-      const sumSq = ((a?.suggested_waste?.squares || 0) + (b?.suggested_waste?.squares || 0))
-      const areaSq = ((parseFloat(a?.total_area_sqft||0)+parseFloat(b?.total_area_sqft||0))/100)||0
-      const roofAreaRounded = Math.ceil(sumSq || areaSq)
-      const mapPB = (pb:any[]) => pb.map((p:any) => ({ pitch: String(p.pitch || ''), area_sqft: parseFloat(p.area_sqft || 0) || 0 }))
-      const mergedPBMap = new Map<string, number>()
-      const mergedList = mapPB(a?.pitch_breakdown || []).concat(mapPB(b?.pitch_breakdown || []))
-      mergedList.forEach((p:any) => {
-        mergedPBMap.set(p.pitch, (mergedPBMap.get(p.pitch) || 0) + p.area_sqft)
-      })
-      const pitchBreakdown = Array.from(mergedPBMap.entries()).map(([pitch, area_sqft])=>({pitch, squares: (area_sqft/100)||0}))
+    } catch {
       return {
-        roofArea: areaSq,
-        roofAreaRounded,
-        eavesLength: (parseFloat(measA?.eaves_ft||0)||0) + (parseFloat(measB?.eaves_ft||0)||0),
-        rakesLength: (parseFloat(measA?.rakes_ft||0)||0) + (parseFloat(measB?.rakes_ft||0)||0),
-        valleysLength: (parseFloat(measA?.valleys_ft||0)||0) + (parseFloat(measB?.valleys_ft||0)||0),
-        hipsLength: (parseFloat(measA?.hips_ft||0)||0) + (parseFloat(measB?.hips_ft||0)||0),
-        ridgesLength: (parseFloat(measA?.ridges_ft||0)||0) + (parseFloat(measB?.ridges_ft||0)||0),
+        roofArea: 0,
+        roofAreaRounded: 0,
+        eavesLength: 0,
+        rakesLength: 0,
+        valleysLength: 0,
+        hipsLength: 0,
+        ridgesLength: 0,
         pitch: 0,
         stories: 1,
         hasTrailerAccess: false,
         hasSecondLayer: false,
         lowPitchArea: 0,
         hasRidgeVent: false,
-        pitchBreakdown,
+        pitchBreakdown: [],
       }
-    }
-    if (structs.length >= 2 && includeDetached) {
-      return combine(structs[0], structs[1])
-    }
-    if (structs.length >= 1) {
-      return pick(structs[0])
-    }
-    const roof = (data as any)?.roof_measurements || {}
-    return {
-      roofArea: ((parseFloat(roof?.total_area_sqft || 0))/100)||0,
-      roofAreaRounded: Math.ceil(((parseFloat(roof?.total_area_sqft || 0))/100)||0),
-      eavesLength: parseFloat(roof?.eaves_ft || 0) || 0,
-      rakesLength: parseFloat(roof?.rakes_ft || 0) || 0,
-      valleysLength: parseFloat(roof?.valleys_ft || 0) || 0,
-      hipsLength: parseFloat(roof?.hips_ft || 0) || 0,
-      ridgesLength: parseFloat(roof?.ridges_ft || 0) || 0,
-      pitch: 0,
-      stories: 1,
-      hasTrailerAccess: false,
-      hasSecondLayer: false,
-      lowPitchArea: 0,
-      hasRidgeVent: false,
-      pitchBreakdown: [],
     }
   }
 
