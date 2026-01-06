@@ -92,7 +92,18 @@ export default function MaterialOrder() {
 
   useEffect(() => {
     fetch(`${apiBase()}/api/estimates/material-prices`).then(r=>r.json()).then(j=>setPrices(j.materialPrices||[])).catch(()=>{})
-    fetch(`${apiBase()}/api/estimates/material-order-rules`).then(r=>r.json()).then(j=>setRules(j.materialOrderRules||[])).catch(()=>{})
+    fetch(`${apiBase()}/api/estimates/material-order-rules`).then(r=>r.json()).then(j=>{
+      const rows = j.materialOrderRules || []
+      const mapped = rows.map((rule: any) => ({
+        id: rule.id,
+        materialName: rule.material_name ?? rule.materialName,
+        unitOfMeasure: rule.unit_of_measure ?? rule.unitOfMeasure,
+        quantityFormula: rule.quantity_formula ?? rule.quantityFormula,
+        description: rule.description,
+        category: rule.category,
+      }))
+      setRules(mapped)
+    }).catch(()=>{})
   }, [])
 
   const handleDrag = (e: React.DragEvent) => {
