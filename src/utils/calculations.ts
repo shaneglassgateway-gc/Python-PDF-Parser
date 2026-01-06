@@ -149,6 +149,10 @@ export function applyMaterialPrices(
     return m
   }
   return materials.map(material => {
+    if ((material.pricePerUnit || 0) > 0) {
+      const totalCost = material.quantity * material.pricePerUnit
+      return { ...material, totalCost }
+    }
     const mName = norm(material.itemName)
     const mUnit = normUnit(material.unitOfMeasure)
     const mCat = String(material.category || '').toLowerCase()

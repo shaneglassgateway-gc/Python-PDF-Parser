@@ -20,6 +20,75 @@ export default function MaterialOrder() {
   const [prices, setPrices] = useState<any[]>([])
   const [rules, setRules] = useState<MaterialOrderRule[]>([])
   const [colors, setColors] = useState<Record<string, string>>({})
+  const [accessories, setAccessories] = useState({
+    turtleVentsEnabled: false,
+    turtleVentsQty: 0,
+    baseFlashingEnabled: false,
+    baseFlashingQty: 0,
+    chimneyKitEnabled: false,
+    chimneyKitQty: 0,
+    leadBootsEnabled: false,
+    leadBootsQty: 0,
+    leadBootSize: '3"',
+  })
+  const LEAD_BOOT_SPECS: Record<string, { label: string; price: number }> = {
+    '1.5"': { label: '1-1/2"', price: 23.29 },
+    '2"': { label: '2"', price: 27.37 },
+    '3"': { label: '3"', price: 28.91 },
+    '4"': { label: '4"', price: 31.54 },
+    '5"': { label: '5"', price: 64.81 },
+  }
+  const incQty = (key: keyof typeof accessories) => {
+    setAccessories(p => ({ ...p, [key]: Math.max(0, (p as any)[key] + 1) }))
+  }
+  const decQty = (key: keyof typeof accessories) => {
+    setAccessories(p => ({ ...p, [key]: Math.max(0, (p as any)[key] - 1) }))
+  }
+  const setQtySanitized = (key: keyof typeof accessories, value: string) => {
+    const digits = value.replace(/\D/g, '')
+    const num = digits === '' ? 0 : Math.max(0, parseInt(digits, 10))
+    setAccessories(p => ({ ...p, [key]: num }))
+  }
+  const SHINGLE_COLORS = [
+    'Rustic Black',
+    'Rustic Hickory',
+    'Natural Timber',
+    'Weathered wood',
+    'Oxford Grey',
+    'Virginia Slate',
+    'Rustic Evergreen',
+    'Thunderstorm Grey',
+    'Old English Pewter',
+    'Autumn Brown',
+    'Mountain Slate',
+    'Shadow Grey',
+    'Rustic Slate',
+    'Black Walnut',
+    'Painted Desert',
+    'Antique Slate',
+    'Rustic Cedar',
+  ]
+  const DRIP_EDGE_COLORS = [
+    'Teritone',
+    'Brown',
+    'Black',
+    'Almond',
+    'Clay',
+    'White',
+  ]
+  const TURTLE_VENT_COLORS = [
+    'Black',
+    'Mill Finish',
+    'Weathered Bronze',
+    'White',
+    'Brown',
+  ]
+  const BASE_FLASHING_COLORS = [
+    'Brown',
+    'Mill Finish',
+    'Grey',
+    'Black',
+  ]
 
   useEffect(() => {
     fetch(`${apiBase()}/api/estimates/material-prices`).then(r=>r.json()).then(j=>setPrices(j.materialPrices||[])).catch(()=>{})
@@ -106,14 +175,113 @@ export default function MaterialOrder() {
     if (!data) return
     const m = buildMeasurements()
     const items = calculateMaterialQuantities(m, rules)
-    const priced = applyMaterialPrices(items, prices)
+    const extras: MaterialItem[] = []
+    if (accessories.leadBootsEnabled && accessories.leadBootsQty > 0) {
+      const spec = LEAD_BOOT_SPECS[accessories.leadBootSize] || { label: accessories.leadBootSize, price: 0 }
+      extras.push({
+        id: 'accessory-leadBoots',
+        itemName: `Mayco Industries ${spec.label} Lead Boot with 12" x 12" x 14" Base`,
+        unitOfMeasure: 'EA',
+        pricePerUnit: spec.price,
+        category: 'Accessories',
+        quantity: accessories.leadBootsQty,
+        totalCost: 0,
+      })
+    }
+    if (accessories.baseFlashingEnabled && accessories.baseFlashingQty > 0) {
+      extras.push({
+        id: 'accessory-baseFlashing',
+        itemName: 'TRI-BUILT 4-N-1 Aluminum Base Flashing',
+        unitOfMeasure: 'PC',
+        pricePerUnit: 0,
+        category: 'Accessories',
+        quantity: accessories.baseFlashingQty,
+        totalCost: 0,
+      })
+    }
+    if (accessories.turtleVentsEnabled && accessories.turtleVentsQty > 0) {
+      extras.push({
+        id: 'accessory-turtleVents',
+        itemName: 'TRI-BUILT 750-S Aluminum Slant Back Roof Louver with Screen',
+        unitOfMeasure: 'PC',
+        pricePerUnit: 0,
+        category: 'Accessories',
+        quantity: accessories.turtleVentsQty,
+        totalCost: 0,
+      })
+    }
+    if (accessories.chimneyKitEnabled && accessories.chimneyKitQty > 0) {
+      extras.push({
+        id: 'accessory-chimneyKit',
+        itemName: 'FlashMaster 32" Chimney Flashing Kit',
+        unitOfMeasure: 'EA',
+        pricePerUnit: 0,
+        category: 'Accessories',
+        quantity: accessories.chimneyKitQty,
+        totalCost: 0,
+      })
+    }
+    const priced = applyMaterialPrices([...items, ...extras], prices)
     setMaterials(priced)
+    setColors(prev => {
+      const next = { ...prev }
+      priced.forEach(it => {
+        if (isDripEdge(it.itemName) && !next[it.id]) {
+          next[it.id] = 'White'
+        }
+        if (isChimneyKit(it.itemName)) {
+          next[it.id] = 'Black'
+        }
+        if (isCaulkTube(it.itemName)) {
+          next[it.id] = 'Clear Plastic Cartridge'
+        }
+      })
+      return next
+    })
   }
 
-  useEffect(() => { if (data) compute() }, [data, includeDetached, rules, prices])
+  useEffect(() => { if (data) compute() }, [data, includeDetached, rules, prices, accessories])
 
   const setColor = (id: string, value: string) => {
     setColors(p => ({ ...p, [id]: value }))
+  }
+  const norm = (s?: string) => String(s || '').toLowerCase().replace(/™|®|\.|,/g, '').replace(/&/g, ' and ').replace(/\s+/g, ' ').trim()
+  const needsColor = (name?: string) => {
+    const n = norm(name)
+    if (!n) return false
+    if (n.includes('shingle')) return true
+    if (n.includes('hip ridge')) return true
+    if (n.includes('hip and ridge')) return true
+    if (n.includes('drip edge')) return true
+    if (isTurtleVent(name)) return true
+    if (isBaseFlashing(name)) return true
+    return false
+  }
+  const isDripEdge = (name?: string) => norm(name).includes('drip edge')
+  const isTurtleVent = (name?: string) => {
+    const n = norm(name)
+    return n.includes('750') || n.includes('slant back') || n.includes('roof louver') || n.includes('vent')
+  }
+  const isBaseFlashing = (name?: string) => {
+    const n = norm(name)
+    return n.includes('base flashing') || /4\s*-?\s*n\s*-?\s*1/.test(n) || n.includes('4n1')
+  }
+  const isChimneyKit = (name?: string) => norm(name).includes('chimney flashing kit')
+  const isCaulkTube = (name?: string) => {
+    const n = norm(name)
+    return n.includes('caulk') || n.includes('cartridge')
+  }
+  const defaultColorFor = (name?: string) => {
+    if (isDripEdge(name)) return 'White'
+    if (isChimneyKit(name)) return 'Black'
+    if (isCaulkTube(name)) return 'Clear Plastic Cartridge'
+    return ''
+  }
+  const colorChoicesFor = (name?: string) => {
+    if (isDripEdge(name)) return DRIP_EDGE_COLORS
+    if (isBaseFlashing(name)) return BASE_FLASHING_COLORS
+    if (isTurtleVent(name)) return TURTLE_VENT_COLORS
+    return SHINGLE_COLORS
   }
 
   const onPrint = () => {
@@ -202,6 +370,64 @@ export default function MaterialOrder() {
                 </div>
               </div>
 
+              <div className="mb-4">
+                <h3 className="text-md font-semibold text-gray-900 mb-2">Roofing Accessories</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between border rounded-md p-3">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={accessories.turtleVentsEnabled} onChange={(e)=>setAccessories(p=>({...p,turtleVentsEnabled:e.target.checked}))} />
+                      <span>750 Turtle Vents</span>
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <button type="button" onClick={()=>decQty('turtleVentsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                      <input type="text" inputMode="numeric" pattern="[0-9]*" value={accessories.turtleVentsQty || ''} onChange={(e)=>setQtySanitized('turtleVentsQty', e.target.value)} className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right" />
+                      <button type="button" onClick={()=>incQty('turtleVentsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border rounded-md p-3">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={accessories.baseFlashingEnabled} onChange={(e)=>setAccessories(p=>({...p,baseFlashingEnabled:e.target.checked}))} />
+                      <span>4-N-1 Base Flashing</span>
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <button type="button" onClick={()=>decQty('baseFlashingQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                      <input type="text" inputMode="numeric" pattern="[0-9]*" value={accessories.baseFlashingQty || ''} onChange={(e)=>setQtySanitized('baseFlashingQty', e.target.value)} className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right" />
+                      <button type="button" onClick={()=>incQty('baseFlashingQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border rounded-md p-3">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={accessories.chimneyKitEnabled} onChange={(e)=>setAccessories(p=>({...p,chimneyKitEnabled:e.target.checked}))} />
+                      <span>Chimney Flashing Kits</span>
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <button type="button" onClick={()=>decQty('chimneyKitQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                      <input type="text" inputMode="numeric" pattern="[0-9]*" value={accessories.chimneyKitQty || ''} onChange={(e)=>setQtySanitized('chimneyKitQty', e.target.value)} className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right" />
+                      <button type="button" onClick={()=>incQty('chimneyKitQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border rounded-md p-3">
+                    <div className="flex items-center space-x-2">
+                      <input type="checkbox" checked={accessories.leadBootsEnabled} onChange={(e)=>setAccessories(p=>({...p,leadBootsEnabled:e.target.checked}))} />
+                      <span>Lead Boots</span>
+                      <select value={accessories.leadBootSize} onChange={(e)=>setAccessories(p=>({...p,leadBootSize:e.target.value}))} className="border rounded px-2 py-1">
+                        {['1.5"','2"','3"','4"','5"'].map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button type="button" onClick={()=>decQty('leadBootsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                      <input type="text" inputMode="numeric" pattern="[0-9]*" value={accessories.leadBootsQty || ''} onChange={(e)=>setQtySanitized('leadBootsQty', e.target.value)} className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right" />
+                      <button type="button" onClick={()=>incQty('leadBootsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -223,9 +449,20 @@ export default function MaterialOrder() {
                         <td className="px-4 py-2 text-sm text-gray-700">${item.pricePerUnit.toFixed(2)}</td>
                         <td className="px-4 py-2 text-sm text-gray-700">${item.totalCost.toFixed(2)}</td>
                         <td className="px-4 py-2 text-sm text-gray-700">
-                          <select value={colors[item.id] || ''} onChange={(e)=>setColor(item.id, e.target.value)} className="border rounded px-2 py-1">
-                            <option value="">Select Color</option>
-                          </select>
+                          {needsColor(item.itemName) ? (
+                            isChimneyKit(item.itemName) || isCaulkTube(item.itemName) ? (
+                              <span className="text-gray-700">{defaultColorFor(item.itemName)}</span>
+                            ) : (
+                              <select value={colors[item.id] ?? defaultColorFor(item.itemName)} onChange={(e)=>setColor(item.id, e.target.value)} className="border rounded px-2 py-1">
+                                <option value="">Select Color</option>
+                                {colorChoicesFor(item.itemName).map(c => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))}
+                              </select>
+                            )
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
                         </td>
                       </tr>
                     ))}
