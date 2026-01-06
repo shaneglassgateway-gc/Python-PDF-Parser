@@ -159,7 +159,7 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
         }))
       : []
 
-    const mapped = {
+    let mapped = {
       roofArea: (parseFloat(roof.total_area_sqft || roof.total_area || 0) / 100) || 0,
       roofAreaRounded: Math.ceil(wasteSquares || (parseFloat(roof.total_area_sqft || 0) / 100)) || 0,
       wasteSquares,
@@ -220,6 +220,22 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
         pitchBreakdown: sb,
       }
     })
+
+    if (mappedStructures.length > 0) {
+      const primary = mappedStructures[0]
+      mapped = {
+        ...mapped,
+        roofArea: primary.roofArea,
+        roofAreaRounded: primary.roofAreaRounded,
+        eavesLength: primary.eavesLength,
+        rakesLength: primary.rakesLength,
+        valleysLength: primary.valleysLength,
+        hipsLength: primary.hipsLength,
+        ridgesLength: primary.ridgesLength,
+        lowPitchArea: primary.lowPitchArea,
+        pitchBreakdown: primary.pitchBreakdown,
+      }
+    }
 
     // Clean up uploaded file
     try { fs.unlinkSync(filePath) } catch {}
