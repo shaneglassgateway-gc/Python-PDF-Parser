@@ -323,7 +323,12 @@ export default function MaterialOrder() {
   const setColor = (id: string, value: string) => {
     setColors(p => ({ ...p, [id]: value }))
   }
-  const norm = (s?: string) => String(s || '').toLowerCase().replace(/™|®|\.|,/g, '').replace(/&/g, ' and ').replace(/\s+/g, ' ').trim()
+  const norm = (s?: string) => String(s || '')
+    .toLowerCase()
+    .replace(/™|®|\.|,|"|'/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/\s+/g, ' ')
+    .trim()
   const needsColor = (name?: string) => {
     const n = norm(name)
     if (!n) return false
@@ -332,11 +337,17 @@ export default function MaterialOrder() {
     if (n.includes('hip ridge')) return true
     if (n.includes('hip and ridge')) return true
     if (n.includes('drip edge')) return true
+    if (isDripEdge(name)) return true
     if (isTurtleVent(name)) return true
     if (isBaseFlashing(name)) return true
+    if (isChimneyKit(name)) return true
+    if (isCaulkTube(name)) return true
     return false
   }
-  const isDripEdge = (name?: string) => norm(name).includes('drip edge')
+  const isDripEdge = (name?: string) => {
+    const n = norm(name)
+    return n.includes('drip edge') || n.includes('roof edge') || n.includes('style sr') || n.includes('sr roof edge')
+  }
   const isTurtleVent = (name?: string) => {
     const n = norm(name)
     return n.includes('750') || n.includes('slant back') || n.includes('roof louver') || n.includes('vent')
@@ -348,7 +359,7 @@ export default function MaterialOrder() {
   const isChimneyKit = (name?: string) => norm(name).includes('chimney flashing kit')
   const isCaulkTube = (name?: string) => {
     const n = norm(name)
-    return n.includes('caulk') || n.includes('cartridge')
+    return n.includes('caulk') || n.includes('cartridge') || n.includes('sealant') || n.includes('elastomeric')
   }
   const defaultColorFor = (name?: string) => {
     if (isDripEdge(name)) return 'White'
