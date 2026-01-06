@@ -437,6 +437,17 @@ export default function MaterialOrder() {
                 </div>
               </div>
 
+              {(() => {
+                const m = buildMeasurements()
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-sm text-gray-700">
+                    <div>Effective Squares: {Number(m.roofAreaRounded || Math.ceil(m.roofArea || 0)).toFixed(0)}</div>
+                    <div>Eaves+Rakes LF: {Number((m.eavesLength || 0) + (m.rakesLength || 0)).toFixed(0)}</div>
+                    <div>Ridges+Hips LF: {Number((m.ridgesLength || 0) + (m.hipsLength || 0)).toFixed(0)}</div>
+                  </div>
+                )
+              })()}
+
               <div className="mb-4">
                 <h3 className="text-md font-semibold text-gray-900 mb-2">Roofing Accessories</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
