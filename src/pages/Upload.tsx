@@ -1,22 +1,11 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UploadCloud, FileText, AlertCircle, CheckCircle } from 'lucide-react'
+import { getStructure1Measurements, getCombinedMeasurements } from '../eagleview-types'
 import { supabase } from '../lib/supabase'
 import { apiBase } from '../lib/utils'
 
-interface EagleViewData {
-  roofArea: number
-  eavesLength: number
-  rakesLength: number
-  valleysLength: number
-  hipsLength: number
-  ridgesLength: number
-  pitch: number
-  stories: number
-  hasTrailerAccess: boolean
-  hasSecondLayer: boolean
-  lowPitchArea: number
-}
+type EagleViewData = any
 
 interface JobDetails {
   customerName: string
@@ -227,21 +216,27 @@ export default function Upload() {
       }
       
       // Create estimate data
-      const structures = Array.isArray((eagleViewData as any)?.structures) ? (eagleViewData as any).structures : []
-      let roofMeasurements: any
-      if (structures.length >= 2 && includeDetachedStructure) {
-        roofMeasurements = combineMeasurements([structures[0], structures[1]])
-      } else if (structures.length >= 1) {
-        roofMeasurements = structureToMeasurements(structures[0])
-      } else {
-        roofMeasurements = {
-          ...eagleViewData,
-          hasTrailerAccess: !options.noTrailerAccess,
-          hasSecondLayer: options.secondLayer,
-          hasRidgeVent: options.ridgeVent,
-          thirdStory: options.thirdStory,
-          handLoadMaterials: options.handLoadMaterials,
-        }
+      const meas = includeDetachedStructure ? getCombinedMeasurements(eagleViewData) : getStructure1Measurements(eagleViewData)
+      const roofMeasurements = {
+        roofArea: ((meas?.total_area_sqft || 0) / 100) || 0,
+        roofAreaRounded: Math.ceil(((meas?.suggested_squares || 0))) || Math.ceil(((meas?.total_area_sqft || 0) / 100) || 0),
+        eavesLength: meas?.eaves_ft || 0,
+        rakesLength: meas?.rakes_ft || 0,
+        valleysLength: meas?.valleys_ft || 0,
+        hipsLength: meas?.hips_ft || 0,
+        ridgesLength: meas?.ridges_ft || 0,
+        pitch: 0,
+        stories: 1,
+        hasTrailerAccess: !options.noTrailerAccess,
+        hasSecondLayer: options.secondLayer,
+        hasRidgeVent: options.ridgeVent,
+        thirdStory: options.thirdStory,
+        handLoadMaterials: options.handLoadMaterials,
+        lowPitchArea: 0,
+        pitchBreakdown: ((meas?.pitch_breakdown || []) as any[]).map(p => ({
+          pitch: String(p.pitch || ''),
+          squares: ((p.area_sqft || 0) / 100) || 0,
+        })),
       }
       const estimateData = {
         customer_name: jobDetails.customerName,
@@ -330,12 +325,12 @@ export default function Upload() {
                   <p className="text-green-600 font-medium">EagleView file parsed successfully!</p>
                   {eagleViewData && (
                     <div className="mt-4 text-sm text-gray-600">
-                      <p>Roof Area: {(eagleViewData.roofArea ?? 0).toFixed(1)} squares</p>
-                      <p>Pitch: {(eagleViewData.pitch ?? 0).toFixed(2)}</p>
-                      <p>Stories: {eagleViewData.stories}</p>
                       {Array.isArray((eagleViewData as any)?.structures) && (
                         <p>Structures detected: {(eagleViewData as any).structures.length}</p>
                       )}
+                      <p>
+                        Roof Area (Structure 1): {(((getStructure1Measurements(eagleViewData)?.total_area_sqft) || 0) / 100).toFixed(1)} squares
+                      </p>
                     </div>
                   )}
                 </div>
