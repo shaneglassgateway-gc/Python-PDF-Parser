@@ -63,6 +63,11 @@ export function calculateMaterialQuantities(
   
   rules.forEach(rule => {
     let quantity = 0
+    const nameLower = String(rule.materialName || '').toLowerCase()
+    const isRidgeVentMaterial = /\bridge\s*vent\b/.test(nameLower)
+    if (isRidgeVentMaterial && !measurements.hasRidgeVent) {
+      return
+    }
     
     // Calculate quantity based on formula
     switch (rule.quantityFormula) {
@@ -101,15 +106,17 @@ export function calculateMaterialQuantities(
         quantity = 0
     }
     
-    materials.push({
-      id: rule.id,
-      itemName: rule.materialName,
-      unitOfMeasure: rule.unitOfMeasure,
-      pricePerUnit: 0, // Will be populated from material prices
-      category: rule.category,
-      quantity,
-      totalCost: 0 // Will be calculated after prices are applied
-    })
+    if (quantity > 0) {
+      materials.push({
+        id: rule.id,
+        itemName: rule.materialName,
+        unitOfMeasure: rule.unitOfMeasure,
+        pricePerUnit: 0,
+        category: rule.category,
+        quantity,
+        totalCost: 0
+      })
+    }
   })
   
   return materials
