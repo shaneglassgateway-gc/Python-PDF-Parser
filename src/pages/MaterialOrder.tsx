@@ -39,7 +39,14 @@ export default function MaterialOrder() {
     '5"': { label: '5"', price: 64.81 },
   }
   const incQty = (key: keyof typeof accessories) => {
-    setAccessories(p => ({ ...p, [key]: Math.max(0, (p as any)[key] + 1) }))
+    setAccessories(p => {
+      const next: any = { ...p, [key]: Math.max(0, (p as any)[key] + 1) }
+      if (key === 'turtleVentsQty') next.turtleVentsEnabled = true
+      if (key === 'baseFlashingQty') next.baseFlashingEnabled = true
+      if (key === 'chimneyKitQty') next.chimneyKitEnabled = true
+      if (key === 'leadBootsQty') next.leadBootsEnabled = true
+      return next
+    })
   }
   const decQty = (key: keyof typeof accessories) => {
     setAccessories(p => ({ ...p, [key]: Math.max(0, (p as any)[key] - 1) }))
@@ -91,7 +98,16 @@ export default function MaterialOrder() {
   ]
 
   useEffect(() => {
-    fetch(`${apiBase()}/api/estimates/material-prices`).then(r=>r.json()).then(j=>setPrices(j.materialPrices||[])).catch(()=>{})
+    fetch(`${apiBase()}/api/estimates/material-prices`).then(r=>r.json()).then(j=>{
+      const rows = j.materialPrices || []
+      const mapped = rows.map((p: any) => ({
+        itemName: p.item_name ?? p.itemName,
+        pricePerUnit: p.price_per_unit ?? p.pricePerUnit,
+        unitOfMeasure: p.unit_of_measure ?? p.unitOfMeasure,
+        category: p.category,
+      }))
+      setPrices(mapped)
+    }).catch(()=>{})
     fetch(`${apiBase()}/api/estimates/material-order-rules`).then(r=>r.json()).then(j=>{
       const rows = j.materialOrderRules || []
       const mapped = rows.map((rule: any) => ({
@@ -187,7 +203,7 @@ export default function MaterialOrder() {
     const m = buildMeasurements()
     const items = calculateMaterialQuantities(m, rules)
     const extras: MaterialItem[] = []
-    if (accessories.leadBootsEnabled && accessories.leadBootsQty > 0) {
+    if (accessories.leadBootsQty > 0) {
       const spec = LEAD_BOOT_SPECS[accessories.leadBootSize] || { label: accessories.leadBootSize, price: 0 }
       extras.push({
         id: 'accessory-leadBoots',
@@ -199,7 +215,7 @@ export default function MaterialOrder() {
         totalCost: 0,
       })
     }
-    if (accessories.baseFlashingEnabled && accessories.baseFlashingQty > 0) {
+    if (accessories.baseFlashingQty > 0) {
       extras.push({
         id: 'accessory-baseFlashing',
         itemName: 'TRI-BUILT 4-N-1 Aluminum Base Flashing',
@@ -210,7 +226,7 @@ export default function MaterialOrder() {
         totalCost: 0,
       })
     }
-    if (accessories.turtleVentsEnabled && accessories.turtleVentsQty > 0) {
+    if (accessories.turtleVentsQty > 0) {
       extras.push({
         id: 'accessory-turtleVents',
         itemName: 'TRI-BUILT 750-S Aluminum Slant Back Roof Louver with Screen',
@@ -221,7 +237,7 @@ export default function MaterialOrder() {
         totalCost: 0,
       })
     }
-    if (accessories.chimneyKitEnabled && accessories.chimneyKitQty > 0) {
+    if (accessories.chimneyKitQty > 0) {
       extras.push({
         id: 'accessory-chimneyKit',
         itemName: 'FlashMaster 32" Chimney Flashing Kit',
