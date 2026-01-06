@@ -186,15 +186,20 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
       })) : []
       const sw = s?.suggested_waste?.squares ? parseFloat(s.suggested_waste.squares) : 0
       const sa = parseFloat(s?.total_area_sqft || 0)
+      const meas = s?.measurements || {}
+      const val = (x: any) => {
+        const n = parseFloat(x || 0)
+        return isNaN(n) ? 0 : n
+      }
       return {
         roofArea: (sa / 100) || 0,
         roofAreaRounded: Math.ceil(sw || (sa / 100)) || 0,
         wasteSquares: sw || 0,
-        eavesLength: parseFloat(s?.eaves_ft || 0) || 0,
-        rakesLength: parseFloat(s?.rakes_ft || 0) || 0,
-        valleysLength: parseFloat(s?.valleys_ft || 0) || 0,
-        hipsLength: parseFloat(s?.hips_ft || 0) || 0,
-        ridgesLength: parseFloat(s?.ridges_ft || 0) || 0,
+        eavesLength: val(meas?.eaves_ft),
+        rakesLength: val(meas?.rakes_ft),
+        valleysLength: val(meas?.valleys_ft),
+        hipsLength: val(meas?.hips_ft),
+        ridgesLength: val(meas?.ridges_ft),
         pitch: (() => {
           const m2 = String(s?.predominant_pitch || '').match(/(\d+)\/(\d+)/)
           return m2 ? (parseFloat(m2[1]) / (parseFloat(m2[2]) || 12)) : 0

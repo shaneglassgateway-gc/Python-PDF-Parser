@@ -451,14 +451,12 @@ export default function Upload() {
                 {/* Roofing Accessories */}
                 <div className="col-span-1 md:col-span-2">
                   <h3 className="text-md font-semibold text-gray-900 mb-2">Roofing Accessories</h3>
-                  {Array.isArray((eagleViewData as any)?.structures) && (eagleViewData as any)?.structures.length >= 2 && (
-                    <div className="mb-3">
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox" checked={includeDetachedStructure} onChange={(e)=>setIncludeDetachedStructure(e.target.checked)} />
-                        <span>Include Detached Structure</span>
-                      </label>
-                    </div>
-                  )}
+                  <div className="mb-3">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={includeDetachedStructure} onChange={(e)=>setIncludeDetachedStructure(e.target.checked)} />
+                      <span>Include Detached Structure</span>
+                    </label>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex items-center justify-between border rounded-md p-3">
                       <span>Lead Pipe Boots</span>
