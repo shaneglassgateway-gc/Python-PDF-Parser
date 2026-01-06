@@ -458,8 +458,8 @@ class EagleViewParser:
     def parse_structures(self) -> List[Structure]:
         """Parse individual structure data for multi-structure reports"""
         structures = []
-        
-        structure_matches = list(re.finditer(r'Structure\s*#?\s*(\d+)', self.text_content))
+        pattern = r'\bStructure[\s:#\-]*([0-9]+)\b'
+        structure_matches = list(re.finditer(pattern, self.text_content, re.IGNORECASE))
         struct_positions = {}
         for match in structure_matches:
             struct_num = int(match.group(1))
@@ -469,14 +469,10 @@ class EagleViewParser:
         if all_structures_pos == -1:
             all_structures_pos = len(self.text_content)
         struct_measurements = {}
-        mbs_match = re.search(
-            r'Measurements\s+by\s+Structure.*?Structure.*?Area.*?Ridges.*?\n(.*?)(?:All\s+values|Online)',
-            self.text_content,
-            re.DOTALL | re.IGNORECASE
-        )
+        mbs_match = re.search(r'Measurements\s+by\s+Structure[\s\S]*?Structure[\s\S]*?Area[\s\S]*?Ridges[\s\S]*?\n([\s\S]*?)(?:All\s+values|All\s+Values|Online|Report|\Z)', self.text_content, re.IGNORECASE)
         if mbs_match:
             rows = re.findall(
-                r'(\d+)\s+([\d,]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',
+                r'(\d+)\s+([\d,]+(?:\.\d+)?)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)',
                 mbs_match.group(1)
             )
             for row in rows:
@@ -502,9 +498,9 @@ class EagleViewParser:
                 struct_text = self.text_content[start_pos:end_pos]
                 pitch_breakdown = self._parse_structure_pitches(struct_text)
                 waste_calcs, suggested_waste = self._parse_structure_waste(struct_text)
-                pred_pitch_match = re.search(r'Predominant\s+Pitch\s*[=:]\s*(\d+/\d+)', struct_text)
+                pred_pitch_match = re.search(r'Predominant\s+Pitch\s*[=:]\s*(\d+/\d+)', struct_text, re.IGNORECASE)
                 predominant_pitch = pred_pitch_match.group(1) if pred_pitch_match else ""
-                facets_match = re.search(r'Total\s+Roof\s+Facets\s*[=:]\s*(\d+)', struct_text)
+                facets_match = re.search(r'Total\s+Roof\s+Facets\s*[=:]\s*(\d+)', struct_text, re.IGNORECASE)
                 total_facets = int(facets_match.group(1)) if facets_match else 0
                 if struct_num in struct_measurements:
                     meas = struct_measurements[struct_num]
@@ -517,26 +513,26 @@ class EagleViewParser:
                     flashing = meas['flashing']
                     step_flashing = meas['step_flashing']
                 else:
-                    area_match = re.search(r'Total\s+Area\s*\(All\s+Pitches\)\s*[=:]\s*([\d,]+)', struct_text)
+                    area_match = re.search(r'Total\s+Area\s*\(All\s+Pitches\)\s*[=:]\s*([\d,]+)', struct_text, re.IGNORECASE)
                     total_area = float(area_match.group(1).replace(',', '')) if area_match else 0
-                    ridges_match = re.search(r'Ridges\s*[=:]\s*(\d+)', struct_text)
+                    ridges_match = re.search(r'Ridges\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
                     ridges = float(ridges_match.group(1)) if ridges_match else 0
-                    hips_match = re.search(r'(?<!/)\bHips?\s*[=:]\s*(\d+)', struct_text)
+                    hips_match = re.search(r'(?<!/)\bHips?\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
                     hips = float(hips_match.group(1)) if hips_match else 0
-                    valleys_match = re.search(r'Valleys\s*[=:]\s*(\d+)', struct_text)
+                    valleys_match = re.search(r'Valleys\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
                     valleys = float(valleys_match.group(1)) if valleys_match else 0
-                    rakes_match = re.search(r'Rakes\s*[=:]\s*(\d+)', struct_text)
+                    rakes_match = re.search(r'Rakes\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
                     rakes = float(rakes_match.group(1)) if rakes_match else 0
-                    eaves_match = re.search(r'Eaves\s*[=:]\s*(\d+)', struct_text)
+                    eaves_match = re.search(r'Eaves\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
                     eaves = float(eaves_match.group(1)) if eaves_match else 0
-                    flashing_match = re.search(r'(?<!Step\s)Flashing\s*[=:]\s*(\d+)', struct_text)
+                    flashing_match = re.search(r'(?<!Step\s)Flashing\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
                     flashing = float(flashing_match.group(1)) if flashing_match else 0
-                    step_flashing_match = re.search(r'Step\s+[Ff]lashing\s*[=:]\s*(\d+)', struct_text)
+                    step_flashing_match = re.search(r'Step\s+[Ff]lashing\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
                     step_flashing = float(step_flashing_match.group(1)) if step_flashing_match else 0
                 drip_edge = rakes + eaves
                 complexity = None
                 if 'Simple' in struct_text and 'Normal' in struct_text:
-                    complexity_match = re.search(r'Structure\s+Complexity\s*\n?\s*(Simple|Normal|Complex)', struct_text)
+                    complexity_match = re.search(r'Structure\s+Complexity\s*\n?\s*(Simple|Normal|Complex)', struct_text, re.IGNORECASE)
                     if complexity_match:
                         complexity = complexity_match.group(1)
                 structure = Structure(
