@@ -205,10 +205,11 @@ export default function MaterialOrder() {
       const sumSq = ((a?.suggested_waste?.squares || 0) + (b?.suggested_waste?.squares || 0))
       const areaSq = ((parseFloat(a?.total_area_sqft||0)+parseFloat(b?.total_area_sqft||0))/100)||0
       const roofAreaRounded = Math.ceil(sumSq || areaSq)
-      const mapPB = (pb:any[])=>pb.map((p:any)=>({pitch:String(p.pitch||''), area_sqft: parseFloat(p.area_sqft||0)||0}))
+      const mapPB = (pb:any[]) => pb.map((p:any) => ({ pitch: String(p.pitch || ''), area_sqft: parseFloat(p.area_sqft || 0) || 0 }))
       const mergedPBMap = new Map<string, number>()
-      [...mapPB(a?.pitch_breakdown||[]), ...mapPB(b?.pitch_breakdown||[])].forEach(p=>{
-        mergedPBMap.set(p.pitch, (mergedPBMap.get(p.pitch)||0)+p.area_sqft)
+      const mergedList = mapPB(a?.pitch_breakdown || []).concat(mapPB(b?.pitch_breakdown || []))
+      mergedList.forEach((p:any) => {
+        mergedPBMap.set(p.pitch, (mergedPBMap.get(p.pitch) || 0) + p.area_sqft)
       })
       const pitchBreakdown = Array.from(mergedPBMap.entries()).map(([pitch, area_sqft])=>({pitch, squares: (area_sqft/100)||0}))
       return {
