@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { 
@@ -16,6 +16,14 @@ export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const role = (session?.user as any)?.user_metadata?.role
+      setIsAdmin(role === 'admin')
+    })
+  }, [])
 
   const handleSignOut = async () => {
     try {
@@ -29,6 +37,7 @@ export default function Navigation() {
   const navigation = [
     { name: 'Dashboard', href: '/history', icon: Home },
     { name: 'New Estimate', href: '/upload', icon: Upload },
+    ...(isAdmin ? [{ name: 'New Material Order', href: '/material-order', icon: Building2 }] : []),
     { name: 'History', href: '/history', icon: History },
   ]
 
