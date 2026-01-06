@@ -27,9 +27,7 @@ export default function MaterialOrder() {
     baseFlashingQty: 0,
     chimneyKitEnabled: false,
     chimneyKitQty: 0,
-    leadBootsEnabled: false,
-    leadBootsQty: 0,
-    leadBootSize: '3"',
+    leadBootQty: { '1.5"': 0, '2"': 0, '3"': 0, '4"': 0, '5"': 0 },
   })
   const LEAD_BOOT_SPECS: Record<string, { label: string; price: number }> = {
     '1.5"': { label: '1-1/2"', price: 23.29 },
@@ -44,7 +42,6 @@ export default function MaterialOrder() {
       if (key === 'turtleVentsQty') next.turtleVentsEnabled = true
       if (key === 'baseFlashingQty') next.baseFlashingEnabled = true
       if (key === 'chimneyKitQty') next.chimneyKitEnabled = true
-      if (key === 'leadBootsQty') next.leadBootsEnabled = true
       return next
     })
   }
@@ -55,6 +52,17 @@ export default function MaterialOrder() {
     const digits = value.replace(/\D/g, '')
     const num = digits === '' ? 0 : Math.max(0, parseInt(digits, 10))
     setAccessories(p => ({ ...p, [key]: num }))
+  }
+  const incLead = (size: keyof typeof accessories.leadBootQty) => {
+    setAccessories(p => ({ ...p, leadBootQty: { ...p.leadBootQty, [size]: (p.leadBootQty[size] + 1) } }))
+  }
+  const decLead = (size: keyof typeof accessories.leadBootQty) => {
+    setAccessories(p => ({ ...p, leadBootQty: { ...p.leadBootQty, [size]: Math.max(0, p.leadBootQty[size] - 1) } }))
+  }
+  const setLeadQty = (size: keyof typeof accessories.leadBootQty, value: string) => {
+    const digits = value.replace(/\D/g, '')
+    const num = digits === '' ? 0 : Math.max(0, parseInt(digits, 10))
+    setAccessories(p => ({ ...p, leadBootQty: { ...p.leadBootQty, [size]: num } }))
   }
   const SHINGLE_COLORS = [
     'Rustic Black',
@@ -243,18 +251,21 @@ export default function MaterialOrder() {
     const m = buildMeasurements()
     const items = calculateMaterialQuantities(m, rules)
     const extras: MaterialItem[] = []
-    if (accessories.leadBootsQty > 0) {
-      const spec = LEAD_BOOT_SPECS[accessories.leadBootSize] || { label: accessories.leadBootSize, price: 0 }
-      extras.push({
-        id: 'accessory-leadBoots',
-        itemName: `Mayco Industries ${spec.label} Lead Boot with 12" x 12" x 14" Base`,
-        unitOfMeasure: 'EA',
-        pricePerUnit: spec.price,
-        category: 'Accessories',
-        quantity: accessories.leadBootsQty,
-        totalCost: 0,
-      })
-    }
+    ;(['1.5"','2"','3"','4"','5"'] as const).forEach(sz => {
+      const qty = accessories.leadBootQty[sz]
+      if (qty > 0) {
+        const spec = LEAD_BOOT_SPECS[sz] || { label: sz, price: 0 }
+        extras.push({
+          id: `accessory-leadBoots-${spec.label}`,
+          itemName: `Mayco Industries ${spec.label} Lead Boot with 12" x 12" x 14" Base`,
+          unitOfMeasure: 'EA',
+          pricePerUnit: spec.price,
+          category: 'Accessories',
+          quantity: qty,
+          totalCost: 0,
+        })
+      }
+    })
     if (accessories.baseFlashingQty > 0) {
       extras.push({
         id: 'accessory-baseFlashing',
@@ -316,6 +327,7 @@ export default function MaterialOrder() {
   const needsColor = (name?: string) => {
     const n = norm(name)
     if (!n) return false
+    if (n.includes('starter')) return false
     if (n.includes('shingle')) return true
     if (n.includes('hip ridge')) return true
     if (n.includes('hip and ridge')) return true
@@ -487,20 +499,19 @@ export default function MaterialOrder() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between border rounded-md p-3">
-                    <div className="flex items-center space-x-2">
-                      <input type="checkbox" checked={accessories.leadBootsEnabled} onChange={(e)=>setAccessories(p=>({...p,leadBootsEnabled:e.target.checked}))} />
-                      <span>Lead Boots</span>
-                      <select value={accessories.leadBootSize} onChange={(e)=>setAccessories(p=>({...p,leadBootSize:e.target.value}))} className="border rounded px-2 py-1">
-                        {['1.5"','2"','3"','4"','5"'].map(s => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button type="button" onClick={()=>decQty('leadBootsQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
-                      <input type="text" inputMode="numeric" pattern="[0-9]*" value={accessories.leadBootsQty || ''} onChange={(e)=>setQtySanitized('leadBootsQty', e.target.value)} className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right" />
-                      <button type="button" onClick={()=>incQty('leadBootsQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                  <div className="border rounded-md p-3">
+                    <div className="font-medium mb-2">Lead Boots</div>
+                    <div className="grid grid-cols-1 gap-3">
+                      {(['1.5"','2"','3"','4"','5"'] as const).map(sz => (
+                        <div key={sz} className="flex items-center justify-between">
+                          <span>{sz}</span>
+                          <div className="flex items-center space-x-2">
+                            <button type="button" onClick={()=>decLead(sz)} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                            <input type="text" inputMode="numeric" pattern="[0-9]*" value={accessories.leadBootQty[sz] || ''} onChange={(e)=>setLeadQty(sz, e.target.value)} className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right" />
+                            <button type="button" onClick={()=>incLead(sz)} className="px-2 py-1 border border-gray-300 rounded">+</button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
