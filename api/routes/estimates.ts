@@ -178,7 +178,11 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
       lowPitchArea: lowPitchSq || 0,
       pitchBreakdown,
     }
-    const structuresArr = Array.isArray(parsedData?.structures) ? parsedData.structures : []
+    const structuresArr =
+      Array.isArray(parsedData?.structures) ? parsedData.structures :
+      Array.isArray((parsedData as any)?.Structures) ? (parsedData as any).Structures :
+      Array.isArray((parsedData as any)?.report?.structures) ? (parsedData as any).report.structures :
+      []
     const mappedStructures = structuresArr.map((s: any) => {
       const sb = Array.isArray(s?.pitch_breakdown) ? s.pitch_breakdown.map((p: any) => ({
         pitch: String(p.pitch || ''),
