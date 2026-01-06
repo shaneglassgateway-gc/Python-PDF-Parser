@@ -67,26 +67,8 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
     let parsedData: any = null
     let lastError: any = null
 
-    const parseUrl = process.env.PYTHON_PARSE_URL || ''
-    if (parseUrl) {
-      try {
-        const buffer = fs.readFileSync(filePath)
-        const resp = await fetch(parseUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/pdf' },
-          body: buffer
-        })
-        const remote = await resp.json()
-        if (!resp.ok || !remote?.success) {
-          throw new Error(remote?.detail || `Remote parse failed: ${resp.status}`)
-        }
-        parsedData = remote.data
-      } catch (err) {
-        lastError = err
-      }
-    }
-
-    const pythonCmd = parsedData ? null : await resolvePython()
+    // Prefer local parser first
+    const pythonCmd = await resolvePython()
     
     
     if (pythonCmd) {
@@ -107,6 +89,7 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
       }
     }
 
+    // Fallback to remote Python parser only if local failed
     if (!parsedData && process.env.PYTHON_PARSE_URL) {
       try {
         const buffer = fs.readFileSync(filePath)

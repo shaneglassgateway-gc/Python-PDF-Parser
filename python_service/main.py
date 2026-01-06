@@ -7,7 +7,10 @@ import json
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from eagleview_parser import EagleViewParser
+try:
+    from EagleView_Parser2 import EagleViewParser
+except Exception:
+    from eagleview_parser import EagleViewParser
 
 app = FastAPI()
 
