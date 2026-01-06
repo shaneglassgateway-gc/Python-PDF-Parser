@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UploadCloud, FileText, AlertCircle, CheckCircle } from 'lucide-react'
-import { getStructure1Measurements, getCombinedMeasurements } from '../eagleview-types'
+import { getStructure1Measurements, getCombinedMeasurements } from '../../eagleview-types'
 import { supabase } from '../lib/supabase'
 import { apiBase } from '../lib/utils'
 
