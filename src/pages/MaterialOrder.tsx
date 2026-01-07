@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UploadCloud, CheckCircle, AlertCircle, Printer, Download } from 'lucide-react'
 import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import { supabase } from '../lib/supabase'
 import { apiBase } from '../lib/utils'
 import { getStructure1Measurements, getCombinedMeasurements } from '../../eagleview-types'
@@ -452,74 +451,118 @@ export default function MaterialOrder() {
     const pageWidth = pdf.internal.pageSize.getWidth()
     const pageHeight = pdf.internal.pageSize.getHeight()
     const fmtMoney = (n?: number) => `$${Number(n || 0).toFixed(2)}`
-    const colWidths = { name: 240, unit: 60, qty: 60, price: 70, total: 80, color: 120 }
-    const headerHeight = 24
-    const rowHeight = 20
-    const headerY = marginTop + 48
+    const availableWidth = pageWidth - marginLeft * 2
+    const proportions = [0.36, 0.1, 0.1, 0.14, 0.14, 0.16] // name, unit, qty, price, total, color
+    const colXs: number[] = []
+    const colWs: number[] = []
+    let accX = marginLeft
+    proportions.forEach(p => {
+      const w = Math.floor(availableWidth * p)
+      colXs.push(accX)
+      colWs.push(w)
+      accX += w
+    })
+    const headerHeight = 28
+    const baseRowHeight = 22
+    const headerY = marginTop + 54
     const tableStartY = headerY + headerHeight + 8
+    const loadLogo = () =>
+      new Promise<string | null>(resolve => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          const c = document.createElement('canvas')
+          c.width = img.width
+          c.height = img.height
+          const ctx = c.getContext('2d')
+          if (!ctx) return resolve(null)
+          ctx.drawImage(img, 0, 0)
+          resolve(c.toDataURL('image/png'))
+        }
+        img.onerror = () => resolve(null)
+        img.src = '/favicon.svg'
+      })
+    const logoData = await loadLogo()
+    if (logoData) {
+      const logoW = 96
+      const logoH = 96
+      pdf.addImage(logoData, 'PNG', pageWidth - marginLeft - logoW, marginTop - 6, logoW, logoH)
+    }
+    pdf.setFontSize(12)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(`PO Name: ${poName || ''}`, marginLeft, marginTop + 6)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(`Address: ${poAddress || ''}`, marginLeft, marginTop + 24)
     const drawHeader = () => {
-      pdf.setFontSize(10)
+      pdf.setFillColor(240)
+      pdf.rect(marginLeft, headerY - headerHeight + 6, availableWidth, headerHeight, 'F')
       pdf.setFont('helvetica', 'bold')
-      let x = marginLeft
-      pdf.text('Name', x, headerY); x += colWidths.name
-      pdf.text('Unit', x, headerY); x += colWidths.unit
-      pdf.text('Quantity', x, headerY); x += colWidths.qty
-      pdf.text('Price', x, headerY); x += colWidths.price
-      pdf.text('Total', x, headerY); x += colWidths.total
-      pdf.text('Color', x, headerY)
+      pdf.setFontSize(10)
+      const headers = ['Name', 'Unit', 'Quantity', 'Price', 'Total', 'Color']
+      headers.forEach((h, i) => {
+        pdf.text(h, colXs[i] + 6, headerY)
+      })
+      // column lines
       pdf.setDrawColor(200)
-      pdf.line(marginLeft, headerY + 6, pageWidth - marginLeft, headerY + 6)
+      for (let i = 0; i < colXs.length; i++) {
+        pdf.line(colXs[i], headerY - headerHeight + 6, colXs[i], headerY + 6)
+      }
+      // right boundary
+      pdf.line(marginLeft + availableWidth, headerY - headerHeight + 6, marginLeft + availableWidth, headerY + 6)
+      // bottom line
+      pdf.line(marginLeft, headerY + 6, marginLeft + availableWidth, headerY + 6)
     }
     const drawRow = (y: number, item: MaterialItem) => {
       pdf.setFontSize(10)
       pdf.setFont('helvetica', 'normal')
-      let x = marginLeft
-      const nameLines = pdf.splitTextToSize(String(item.itemName), colWidths.name - 6)
-      pdf.text(nameLines, x, y)
+      const nameCellWidth = colWs[0] - 12
+      const nameLines = pdf.splitTextToSize(String(item.itemName), nameCellWidth)
       const linesCount = Array.isArray(nameLines) ? nameLines.length : 1
-      const effectiveRowHeight = Math.max(rowHeight, linesCount * 12)
-      x += colWidths.name
-      pdf.text(String(item.unitOfMeasure || ''), x, y)
-      x += colWidths.unit
-      pdf.text(String(item.quantity ?? 0), x, y)
-      x += colWidths.qty
-      pdf.text(fmtMoney(item.pricePerUnit), x, y)
-      x += colWidths.price
-      pdf.text(fmtMoney(item.totalCost), x, y)
-      x += colWidths.total
+      const rowH = Math.max(baseRowHeight, linesCount * 12)
+      // vertical lines for the row
+      pdf.setDrawColor(220)
+      for (let i = 0; i < colXs.length; i++) {
+        pdf.line(colXs[i], y - rowH + 6, colXs[i], y + 6)
+      }
+      pdf.line(marginLeft + availableWidth, y - rowH + 6, marginLeft + availableWidth, y + 6)
+      // text
+      pdf.text(nameLines, colXs[0] + 6, y)
+      pdf.text(String(item.unitOfMeasure || ''), colXs[1] + 6, y)
+      pdf.text(String(item.quantity ?? 0), colXs[2] + 6, y)
+      pdf.text(fmtMoney(item.pricePerUnit), colXs[3] + 6, y)
+      pdf.text(fmtMoney(item.totalCost), colXs[4] + 6, y)
       const colorText = needsColor(item.itemName)
         ? (isChimneyKit(item.itemName) || isCaulkTube(item.itemName)
             ? defaultColorFor(item.itemName)
             : (colors[item.id] ?? defaultColorFor(item.itemName)))
         : '—'
-      pdf.text(String(colorText || ''), x, y)
-      return effectiveRowHeight
+      pdf.text(String(colorText || ''), colXs[5] + 6, y)
+      // bottom separator
+      pdf.line(marginLeft, y + 6, marginLeft + availableWidth, y + 6)
+      return rowH
     }
-    pdf.setFontSize(14)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('Material Order', marginLeft, marginTop)
-    pdf.setFontSize(11)
-    pdf.setFont('helvetica', 'normal')
-    pdf.text(`PO Name: ${poName || ''}`, marginLeft, marginTop + 18)
-    pdf.text(`Address: ${poAddress || ''}`, marginLeft, marginTop + 34)
     drawHeader()
     let y = tableStartY
-    materials.forEach(item => {
-      if (y + rowHeight + 16 > pageHeight - marginTop) {
+    for (const item of materials) {
+      const neededH = baseRowHeight
+      if (y + neededH + 16 > pageHeight - marginTop) {
         pdf.addPage()
-        pdf.setFontSize(14)
+        if (logoData) {
+          const logoW = 96
+          const logoH = 96
+          pdf.addImage(logoData, 'PNG', pageWidth - marginLeft - logoW, marginTop - 6, logoW, logoH)
+        }
+        pdf.setFontSize(12)
         pdf.setFont('helvetica', 'bold')
-        pdf.text('Material Order (cont.)', marginLeft, marginTop)
-        pdf.setFontSize(11)
+        pdf.text(`PO Name: ${poName || ''}`, marginLeft, marginTop + 6)
         pdf.setFont('helvetica', 'normal')
-        pdf.text(`PO Name: ${poName || ''}`, marginLeft, marginTop + 18)
-        pdf.text(`Address: ${poAddress || ''}`, marginLeft, marginTop + 34)
+        pdf.text(`Address: ${poAddress || ''}`, marginLeft, marginTop + 24)
         drawHeader()
         y = tableStartY
       }
       const h = drawRow(y, item)
       y += h
-    })
+    }
     const fileSafeName = (poName || 'Material_Order').replace(/[^a-z0-9_\-]+/gi, '_')
     pdf.save(`${fileSafeName}.pdf`)
   }
