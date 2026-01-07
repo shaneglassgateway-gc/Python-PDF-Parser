@@ -300,7 +300,41 @@ export default function MaterialOrder() {
       })
     }
     const priced = applyMaterialPrices([...items, ...extras], prices)
-    setMaterials(priced)
+    const norm = (s?: string) =>
+      String(s || '')
+        .toLowerCase()
+        .replace(/™|®|\.|,|"|'/g, '')
+        .replace(/&/g, ' and ')
+        .replace(/\s+/g, ' ')
+        .trim()
+    const priority = (name?: string) => {
+      const n = norm(name)
+      if (!n) return 999
+      if (n.includes('shingle') && !n.includes('starter') && !n.includes('hip ridge')) return 1
+      if (n.includes('hip ridge') || n.includes('hip and ridge')) return 2
+      if (n.includes('ridge vent')) return 3
+      if (n.includes('synthetic') && n.includes('underlayment')) return 4
+      if (n.includes('starter')) return 5
+      if (n.includes('roof edge') || n.includes('drip edge') || n.includes('style sr')) return 6
+      if ((n.includes('ice') && n.includes('water')) || n.includes('ice water')) return 7
+      if (n.includes('coil') && (n.includes('roofing') || n.includes('roof')) && n.includes('nail')) return 8
+      if (n.includes('staple')) return 9
+      if (n.includes('lead boot') || n.includes('pvc boot')) return 10
+      if (n.includes('multicap') || (n.includes('vent') && n.includes('cap'))) return 11
+      if (n.includes('elastomeric') || n.includes('sealant')) return 12
+      if (n.includes('chimney') && n.includes('flashing')) return 13
+      if (n.includes('750') || n.includes('slant back') || n.includes('roof louver')) return 14
+      return 500
+    }
+    const sorted = [...priced].sort((a, b) => {
+      const pa = priority(a.itemName)
+      const pb = priority(b.itemName)
+      if (pa !== pb) return pa - pb
+      const na = norm(a.itemName)
+      const nb = norm(b.itemName)
+      return na.localeCompare(nb)
+    })
+    setMaterials(sorted)
     setColors(prev => {
       const next = { ...prev }
       priced.forEach(it => {
