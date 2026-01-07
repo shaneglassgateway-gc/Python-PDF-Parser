@@ -297,39 +297,45 @@ class EagleViewParser:
             pct_values = re.findall(r'(\d+)%?', waste_section.group(1))
             area_values = re.findall(r'(\d+)', waste_section.group(2))
             sq_values = re.findall(r'([\d.]+)', waste_section.group(3))
-            
-            # Determine suggested waste percentage
-            # EagleView typically marks one column as "Suggested" - usually 10% for normal complexity
-            # Look for explicit "Suggested" marker position or use the bolded/highlighted one
+
+            # Primary: detect the column with an explicit "Suggested" label, regardless of position.
             suggested_pct = None
-            
-            # Check if there's explicit text indicating suggested percentage
-            suggested_match = re.search(
-                r'(\d+)%\s*\n?\s*Area.*?Suggested|Suggested.*?(\d+)%',
-                self.text_content,
-                re.IGNORECASE | re.DOTALL
-            )
-            
-            # In most EagleView reports, 10% is suggested for normal complexity
-            # The pattern shows columns with "Measured" under 0% and "Suggested" typically under 10%
-            # Count position of "Suggested" label if it appears after the table
-            full_waste_section = re.search(
-                r'Waste\s*%\s*([\d%\s]+).*?Measured\s*(Suggested)?',
-                self.text_content,
-                re.IGNORECASE | re.DOTALL
-            )
-            
-            if full_waste_section and 'Suggested' in self.text_content:
-                # Find which column has the suggested marker
-                # Typically it's the 4th column (index 3) which is 10%
-                # But let's check if 10% exists in the values
-                if '10' in pct_values:
-                    suggested_pct = 10
-                else:
-                    # Default to middle value
-                    mid_idx = len(pct_values) // 2
-                    suggested_pct = int(pct_values[mid_idx]) if pct_values else None
-            
+            table_text = waste_section.group(0)
+            # Try to associate Suggested with a nearby percent explicitly in the same textual vicinity
+            inline_match = re.search(r'(\d+)%[^\n]{0,120}?Suggested', table_text, re.IGNORECASE)
+            if not inline_match:
+                inline_match = re.search(r'Suggested[^\n]{0,120}?(\d+)%', table_text, re.IGNORECASE)
+            if inline_match:
+                try:
+                    suggested_pct = int(inline_match.group(1))
+                except ValueError:
+                    suggested_pct = None
+
+            # Fallback: heuristic based on pitch complexity if explicit label not found
+            if suggested_pct is None:
+                try:
+                    pitch_section = re.search(
+                        r'Areas?\s+per\s+Pitch.*?Roof\s+Pitches?\s+([\d/\s]+)\s*Area\s*\(sq\s*ft\)\s*([\d.,\s]+)\s*%\s*of\s*Roof\s*([\d.%\s]+)',
+                        self.text_content,
+                        re.DOTALL | re.IGNORECASE
+                    )
+                    pitches_in_section = []
+                    if pitch_section:
+                        pitches_in_section = re.findall(r'(\d+)/12', pitch_section.group(1))
+                    steep_pitches = [int(p) for p in pitches_in_section if int(p) >= 12]
+                    has_steep = len(steep_pitches) > 0
+                    has_multiple_pitches = len(set(pitches_in_section)) > 1
+                    if has_steep:
+                        suggested_idx = 6
+                    elif has_multiple_pitches:
+                        suggested_idx = 4
+                    else:
+                        suggested_idx = 3
+                except Exception:
+                    suggested_idx = max(0, min(3, (len(pct_values) // 2)))
+                suggested_idx = min(suggested_idx, len(pct_values) - 1) if pct_values else 0
+                suggested_pct = int(pct_values[suggested_idx]) if pct_values else None
+
             for i, pct in enumerate(pct_values):
                 if i < len(area_values) and i < len(sq_values):
                     try:
