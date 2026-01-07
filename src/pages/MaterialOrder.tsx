@@ -494,7 +494,7 @@ export default function MaterialOrder() {
     pdf.setFont('helvetica', 'normal')
     pdf.text(`Address: ${poAddress || ''}`, marginLeft, marginTop + 24)
     const drawHeader = () => {
-      pdf.setFillColor(240)
+      pdf.setFillColor(240, 240, 240)
       pdf.rect(marginLeft, headerY - headerHeight + 6, availableWidth, headerHeight, 'F')
       pdf.setFont('helvetica', 'bold')
       pdf.setFontSize(10)
@@ -503,7 +503,7 @@ export default function MaterialOrder() {
         pdf.text(h, colXs[i] + 6, headerY)
       })
       // column lines
-      pdf.setDrawColor(200)
+      pdf.setDrawColor(200, 200, 200)
       for (let i = 0; i < colXs.length; i++) {
         pdf.line(colXs[i], headerY - headerHeight + 6, colXs[i], headerY + 6)
       }
@@ -520,7 +520,7 @@ export default function MaterialOrder() {
       const linesCount = Array.isArray(nameLines) ? nameLines.length : 1
       const rowH = Math.max(baseRowHeight, linesCount * 12)
       // vertical lines for the row
-      pdf.setDrawColor(220)
+      pdf.setDrawColor(220, 220, 220)
       for (let i = 0; i < colXs.length; i++) {
         pdf.line(colXs[i], y - rowH + 6, colXs[i], y + 6)
       }
