@@ -27,6 +27,8 @@ export default function MaterialOrder() {
     baseFlashingQty: 0,
     chimneyKitEnabled: false,
     chimneyKitQty: 0,
+    multicapEnabled: false,
+    multicapQty: 0,
     leadBootQty: { '1.5"': 0, '2"': 0, '3"': 0, '4"': 0, '5"': 0 },
   })
   const LEAD_BOOT_SPECS: Record<string, { label: string; price: number }> = {
@@ -42,6 +44,7 @@ export default function MaterialOrder() {
       if (key === 'turtleVentsQty') next.turtleVentsEnabled = true
       if (key === 'baseFlashingQty') next.baseFlashingEnabled = true
       if (key === 'chimneyKitQty') next.chimneyKitEnabled = true
+      if (key === 'multicapQty') next.multicapEnabled = true
       return next
     })
   }
@@ -299,6 +302,17 @@ export default function MaterialOrder() {
         totalCost: 0,
       })
     }
+    if (accessories.multicapQty > 0) {
+      extras.push({
+        id: 'accessory-multicap',
+        itemName: 'TRI-BUILT Multicap Vent Cap',
+        unitOfMeasure: 'PC',
+        pricePerUnit: 0,
+        category: 'Accessories',
+        quantity: accessories.multicapQty,
+        totalCost: 0,
+      })
+    }
     const priced = applyMaterialPrices([...items, ...extras], prices)
     const norm = (s?: string) =>
       String(s || '')
@@ -498,7 +512,7 @@ export default function MaterialOrder() {
                 const m = buildMeasurements()
                 return (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-sm text-gray-700">
-                    <div>Effective Squares: {Number(m.roofAreaRounded || Math.ceil(m.roofArea || 0)).toFixed(0)}</div>
+                    <div>Effective Squares: {Math.ceil(Number((m as any).roofAreaRounded ?? (m as any).roofArea ?? 0))}</div>
                     <div>Eaves+Rakes LF: {Number((m.eavesLength || 0) + (m.rakesLength || 0)).toFixed(0)}</div>
                     <div>Ridges+Hips LF: {Number((m.ridgesLength || 0) + (m.hipsLength || 0)).toFixed(0)}</div>
                   </div>
@@ -557,6 +571,18 @@ export default function MaterialOrder() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between border rounded-md p-3">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={accessories.multicapEnabled} onChange={(e)=>setAccessories(p=>({...p,multicapEnabled:e.target.checked}))} />
+                      <span>Furnace Cap (Multicap Vent Cap)</span>
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <button type="button" onClick={()=>decQty('multicapQty')} className="px-2 py-1 border border-gray-300 rounded">-</button>
+                      <input type="text" inputMode="numeric" pattern="[0-9]*" value={accessories.multicapQty || ''} onChange={(e)=>setQtySanitized('multicapQty', e.target.value)} className="w-20 px-2 py-1 border border-gray-300 rounded-md text-right" />
+                      <button type="button" onClick={()=>incQty('multicapQty')} className="px-2 py-1 border border-gray-300 rounded">+</button>
                     </div>
                   </div>
                 </div>
