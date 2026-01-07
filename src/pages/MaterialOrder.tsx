@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UploadCloud, CheckCircle, AlertCircle, Printer, Download } from 'lucide-react'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 import { supabase } from '../lib/supabase'
 import { apiBase } from '../lib/utils'
 import { getStructure1Measurements, getCombinedMeasurements } from '../../eagleview-types'
@@ -20,6 +22,9 @@ export default function MaterialOrder() {
   const [prices, setPrices] = useState<any[]>([])
   const [rules, setRules] = useState<MaterialOrderRule[]>([])
   const [colors, setColors] = useState<Record<string, string>>({})
+  const [poName, setPoName] = useState('')
+  const [poAddress, setPoAddress] = useState('')
+  const pdfSectionRef = useRef<HTMLDivElement>(null)
   const [accessories, setAccessories] = useState({
     turtleVentsEnabled: false,
     turtleVentsQty: 0,
@@ -367,6 +372,12 @@ export default function MaterialOrder() {
   }
 
   useEffect(() => { if (data) compute() }, [data, includeDetached, rules, prices, accessories])
+  useEffect(() => {
+    if (data) {
+      const addr = (data as any)?.property?.address || ''
+      setPoAddress(prev => prev || addr)
+    }
+  }, [data])
 
   const setColor = (id: string, value: string) => {
     setColors(p => ({ ...p, [id]: value }))
@@ -433,6 +444,23 @@ export default function MaterialOrder() {
 
   const onDownload = () => {
     window.print()
+  }
+  const generatePdf = async () => {
+    const node = pdfSectionRef.current
+    if (!node) return
+    const canvas = await html2canvas(node, { scale: 2 })
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'pt', 'a4')
+    pdf.setFontSize(12)
+    pdf.text(`PO Name: ${poName || ''}`, 40, 40)
+    pdf.text(`Address: ${poAddress || ''}`, 40, 58)
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const maxWidth = pageWidth - 80
+    const imgWidth = maxWidth
+    const imgHeight = canvas.height * (imgWidth / canvas.width)
+    pdf.addImage(imgData, 'PNG', 40, 80, imgWidth, imgHeight)
+    const fileSafeName = (poName || 'Material_Order').replace(/[^a-z0-9_\-]+/gi, '_')
+    pdf.save(`${fileSafeName}.pdf`)
   }
 
   return (
@@ -513,16 +541,27 @@ export default function MaterialOrder() {
                 </div>
               </div>
 
-              {(() => {
-                const m = buildMeasurements()
-                return (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-sm text-gray-700">
-                    <div>Effective Squares: {Math.ceil(Number((m as any).roofAreaRounded ?? (m as any).roofArea ?? 0))}</div>
-                    <div>Eaves+Rakes LF: {Number((m.eavesLength || 0) + (m.rakesLength || 0)).toFixed(0)}</div>
-                    <div>Ridges+Hips LF: {Number((m.ridgesLength || 0) + (m.hipsLength || 0)).toFixed(0)}</div>
-                  </div>
-                )
-              })()}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">PO Name</label>
+                  <input type="text" value={poName} onChange={(e)=>setPoName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <input type="text" value={poAddress} onChange={(e)=>setPoAddress(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                </div>
+              </div>
+              <div ref={pdfSectionRef}>
+                {(() => {
+                  const m = buildMeasurements()
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-sm text-gray-700">
+                      <div>Effective Squares: {Math.ceil(Number((m as any).roofAreaRounded ?? (m as any).roofArea ?? 0))}</div>
+                      <div>Eaves+Rakes LF: {Number((m.eavesLength || 0) + (m.rakesLength || 0)).toFixed(0)}</div>
+                      <div>Ridges+Hips LF: {Number((m.ridgesLength || 0) + (m.hipsLength || 0)).toFixed(0)}</div>
+                    </div>
+                  )
+                })()}
 
               <div className="mb-4">
                 <h3 className="text-md font-semibold text-gray-900 mb-2">Roofing Accessories</h3>
@@ -633,6 +672,9 @@ export default function MaterialOrder() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button onClick={generatePdf} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Generate Material Order</button>
               </div>
             </div>
           )}
