@@ -219,7 +219,7 @@ export default function Upload() {
       const meas = includeDetachedStructure ? getCombinedMeasurements(eagleViewData) : getStructure1Measurements(eagleViewData)
       const roofMeasurements = {
         roofArea: ((meas?.total_area_sqft || 0) / 100) || 0,
-        roofAreaRounded: Math.ceil(((meas?.suggested_squares || 0))) || Math.ceil(((meas?.total_area_sqft || 0) / 100) || 0),
+        roofAreaRounded: Number((meas?.suggested_squares ?? ((meas?.total_area_sqft || 0) / 100))) || 0,
         eavesLength: meas?.eaves_ft || 0,
         rakesLength: meas?.rakes_ft || 0,
         valleysLength: meas?.valleys_ft || 0,
