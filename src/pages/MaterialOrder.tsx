@@ -673,6 +673,7 @@ export default function MaterialOrder() {
                   </tbody>
                 </table>
               </div>
+              </div>
               <div className="mt-4 flex justify-end">
                 <button onClick={generatePdf} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Generate Material Order</button>
               </div>
