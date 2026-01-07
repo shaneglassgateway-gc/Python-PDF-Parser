@@ -446,19 +446,80 @@ export default function MaterialOrder() {
     window.print()
   }
   const generatePdf = async () => {
-    const node = pdfSectionRef.current
-    if (!node) return
-    const canvas = await html2canvas(node, { scale: 2 })
-    const imgData = canvas.toDataURL('image/png')
     const pdf = new jsPDF('p', 'pt', 'a4')
-    pdf.setFontSize(12)
-    pdf.text(`PO Name: ${poName || ''}`, 40, 40)
-    pdf.text(`Address: ${poAddress || ''}`, 40, 58)
+    const marginLeft = 40
+    const marginTop = 40
     const pageWidth = pdf.internal.pageSize.getWidth()
-    const maxWidth = pageWidth - 80
-    const imgWidth = maxWidth
-    const imgHeight = canvas.height * (imgWidth / canvas.width)
-    pdf.addImage(imgData, 'PNG', 40, 80, imgWidth, imgHeight)
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const fmtMoney = (n?: number) => `$${Number(n || 0).toFixed(2)}`
+    const colWidths = { name: 240, unit: 60, qty: 60, price: 70, total: 80, color: 120 }
+    const headerHeight = 24
+    const rowHeight = 20
+    const headerY = marginTop + 48
+    const tableStartY = headerY + headerHeight + 8
+    const drawHeader = () => {
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'bold')
+      let x = marginLeft
+      pdf.text('Name', x, headerY); x += colWidths.name
+      pdf.text('Unit', x, headerY); x += colWidths.unit
+      pdf.text('Quantity', x, headerY); x += colWidths.qty
+      pdf.text('Price', x, headerY); x += colWidths.price
+      pdf.text('Total', x, headerY); x += colWidths.total
+      pdf.text('Color', x, headerY)
+      pdf.setDrawColor(200)
+      pdf.line(marginLeft, headerY + 6, pageWidth - marginLeft, headerY + 6)
+    }
+    const drawRow = (y: number, item: MaterialItem) => {
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'normal')
+      let x = marginLeft
+      const nameLines = pdf.splitTextToSize(String(item.itemName), colWidths.name - 6)
+      pdf.text(nameLines, x, y)
+      const linesCount = Array.isArray(nameLines) ? nameLines.length : 1
+      const effectiveRowHeight = Math.max(rowHeight, linesCount * 12)
+      x += colWidths.name
+      pdf.text(String(item.unitOfMeasure || ''), x, y)
+      x += colWidths.unit
+      pdf.text(String(item.quantity ?? 0), x, y)
+      x += colWidths.qty
+      pdf.text(fmtMoney(item.pricePerUnit), x, y)
+      x += colWidths.price
+      pdf.text(fmtMoney(item.totalCost), x, y)
+      x += colWidths.total
+      const colorText = needsColor(item.itemName)
+        ? (isChimneyKit(item.itemName) || isCaulkTube(item.itemName)
+            ? defaultColorFor(item.itemName)
+            : (colors[item.id] ?? defaultColorFor(item.itemName)))
+        : '—'
+      pdf.text(String(colorText || ''), x, y)
+      return effectiveRowHeight
+    }
+    pdf.setFontSize(14)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Material Order', marginLeft, marginTop)
+    pdf.setFontSize(11)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(`PO Name: ${poName || ''}`, marginLeft, marginTop + 18)
+    pdf.text(`Address: ${poAddress || ''}`, marginLeft, marginTop + 34)
+    drawHeader()
+    let y = tableStartY
+    materials.forEach(item => {
+      if (y + rowHeight + 16 > pageHeight - marginTop) {
+        pdf.addPage()
+        pdf.setFontSize(14)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text('Material Order (cont.)', marginLeft, marginTop)
+        pdf.setFontSize(11)
+        pdf.setFont('helvetica', 'normal')
+        pdf.text(`PO Name: ${poName || ''}`, marginLeft, marginTop + 18)
+        pdf.text(`Address: ${poAddress || ''}`, marginLeft, marginTop + 34)
+        drawHeader()
+        y = tableStartY
+      }
+      const h = drawRow(y, item)
+      y += h
+    })
     const fileSafeName = (poName || 'Material_Order').replace(/[^a-z0-9_\-]+/gi, '_')
     pdf.save(`${fileSafeName}.pdf`)
   }
