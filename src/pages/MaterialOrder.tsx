@@ -24,6 +24,8 @@ export default function MaterialOrder() {
   const [poName, setPoName] = useState('')
   const [poAddress, setPoAddress] = useState('')
   const pdfSectionRef = useRef<HTMLDivElement>(null)
+  const [estimatorName, setEstimatorName] = useState('')
+  const [estimatorEmail, setEstimatorEmail] = useState('')
   const [accessories, setAccessories] = useState({
     turtleVentsEnabled: false,
     turtleVentsQty: 0,
@@ -377,6 +379,15 @@ export default function MaterialOrder() {
       setPoAddress(prev => prev || addr)
     }
   }, [data])
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const user = session?.user as any
+      const name = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.display_name || ''
+      const email = user?.email || ''
+      setEstimatorName(name || '')
+      setEstimatorEmail(email || '')
+    })
+  }, [])
 
   const setColor = (id: string, value: string) => {
     setColors(p => ({ ...p, [id]: value }))
@@ -497,6 +508,9 @@ export default function MaterialOrder() {
     pdf.text(`PO Name: ${poName || ''}`, marginLeft, marginTop + 6)
     pdf.setFont('helvetica', 'normal')
     pdf.text(`Address: ${poAddress || ''}`, marginLeft, marginTop + 24)
+    pdf.text(`Account # 597478`, marginLeft, marginTop + 40)
+    pdf.text(`Estimator: ${estimatorName || ''}`, marginLeft, marginTop + 56)
+    pdf.text(`Estimator Email: ${estimatorEmail || ''}`, marginLeft, marginTop + 72)
     const drawHeader = () => {
       pdf.setFillColor(240, 240, 240)
       pdf.rect(marginLeft, headerTop, availableWidth, headerHeight, 'F')
