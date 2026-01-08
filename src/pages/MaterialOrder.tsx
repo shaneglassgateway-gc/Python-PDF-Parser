@@ -464,7 +464,7 @@ export default function MaterialOrder() {
     })
     const headerHeight = 28
     const baseRowHeight = 22
-    const headerY = marginTop + 54
+    const headerY = marginTop + 130
     const tableStartY = headerY + headerHeight + 8
     const loadLogo = () =>
       new Promise<string | null>(resolve => {
@@ -480,7 +480,7 @@ export default function MaterialOrder() {
           resolve(c.toDataURL('image/png'))
         }
         img.onerror = () => resolve(null)
-        img.src = '/favicon.svg'
+        img.src = '/logo.png'
       })
     const logoData = await loadLogo()
     if (logoData) {
@@ -517,7 +517,16 @@ export default function MaterialOrder() {
       pdf.setFont('helvetica', 'normal')
       const nameCellWidth = colWs[0] - 12
       const nameLines = pdf.splitTextToSize(String(item.itemName), nameCellWidth)
-      const linesCount = Array.isArray(nameLines) ? nameLines.length : 1
+      const colorCellWidth = colWs[5] - 12
+      const colorText = needsColor(item.itemName)
+        ? (isChimneyKit(item.itemName) || isCaulkTube(item.itemName)
+            ? defaultColorFor(item.itemName)
+            : (colors[item.id] ?? defaultColorFor(item.itemName)))
+        : '—'
+      const colorLines = pdf.splitTextToSize(String(colorText || ''), colorCellWidth)
+      const nameLinesCount = Array.isArray(nameLines) ? nameLines.length : 1
+      const colorLinesCount = Array.isArray(colorLines) ? colorLines.length : 1
+      const linesCount = Math.max(nameLinesCount, colorLinesCount)
       const rowH = Math.max(baseRowHeight, linesCount * 12)
       // vertical lines for the row
       pdf.setDrawColor(220, 220, 220)
@@ -531,12 +540,7 @@ export default function MaterialOrder() {
       pdf.text(String(item.quantity ?? 0), colXs[2] + 6, y)
       pdf.text(fmtMoney(item.pricePerUnit), colXs[3] + 6, y)
       pdf.text(fmtMoney(item.totalCost), colXs[4] + 6, y)
-      const colorText = needsColor(item.itemName)
-        ? (isChimneyKit(item.itemName) || isCaulkTube(item.itemName)
-            ? defaultColorFor(item.itemName)
-            : (colors[item.id] ?? defaultColorFor(item.itemName)))
-        : '—'
-      pdf.text(String(colorText || ''), colXs[5] + 6, y)
+      pdf.text(colorLines, colXs[5] + 6, y)
       // bottom separator
       pdf.line(marginLeft, y + 6, marginLeft + availableWidth, y + 6)
       return rowH
@@ -544,7 +548,19 @@ export default function MaterialOrder() {
     drawHeader()
     let y = tableStartY
     for (const item of materials) {
-      const neededH = baseRowHeight
+      // Precompute row height for pagination check
+      const nameCellWidth = colWs[0] - 12
+      const colorCellWidth = colWs[5] - 12
+      const nameLines = pdf.splitTextToSize(String(item.itemName), nameCellWidth)
+      const colorText = needsColor(item.itemName)
+        ? (isChimneyKit(item.itemName) || isCaulkTube(item.itemName)
+            ? defaultColorFor(item.itemName)
+            : (colors[item.id] ?? defaultColorFor(item.itemName)))
+        : '—'
+      const colorLines = pdf.splitTextToSize(String(colorText || ''), colorCellWidth)
+      const nameLinesCount = Array.isArray(nameLines) ? nameLines.length : 1
+      const colorLinesCount = Array.isArray(colorLines) ? colorLines.length : 1
+      const neededH = Math.max(baseRowHeight, Math.max(nameLinesCount, colorLinesCount) * 12)
       if (y + neededH + 16 > pageHeight - marginTop) {
         pdf.addPage()
         if (logoData) {
