@@ -26,6 +26,7 @@ export default function MaterialOrder() {
   const pdfSectionRef = useRef<HTMLDivElement>(null)
   const [estimatorName, setEstimatorName] = useState('')
   const [estimatorEmail, setEstimatorEmail] = useState('')
+  const [qtyOverrides, setQtyOverrides] = useState<Record<string, number>>({})
   const [accessories, setAccessories] = useState({
     turtleVentsEnabled: false,
     turtleVentsQty: 0,
@@ -320,6 +321,14 @@ export default function MaterialOrder() {
       })
     }
     const priced = applyMaterialPrices([...items, ...extras], prices)
+    const applied = priced.map(it => {
+      const override = qtyOverrides[it.id]
+      if (typeof override === 'number' && !Number.isNaN(override)) {
+        const q = Math.max(0, override)
+        return { ...it, quantity: q, totalCost: q * (it.pricePerUnit || 0) }
+      }
+      return it
+    })
     const norm = (s?: string) =>
       String(s || '')
         .toLowerCase()
@@ -346,7 +355,7 @@ export default function MaterialOrder() {
       if (n.includes('750') || n.includes('slant back') || n.includes('roof louver')) return 14
       return 500
     }
-    const sorted = [...priced].sort((a, b) => {
+    const sorted = [...applied].sort((a, b) => {
       const pa = priority(a.itemName)
       const pb = priority(b.itemName)
       if (pa !== pb) return pa - pb
@@ -372,7 +381,7 @@ export default function MaterialOrder() {
     })
   }
 
-  useEffect(() => { if (data) compute() }, [data, includeDetached, rules, prices, accessories])
+  useEffect(() => { if (data) compute() }, [data, includeDetached, rules, prices, accessories, qtyOverrides])
   useEffect(() => {
     if (data) {
       const addr = (data as any)?.property?.address || ''
@@ -448,6 +457,11 @@ export default function MaterialOrder() {
     if (isBaseFlashing(name)) return BASE_FLASHING_COLORS
     if (isTurtleVent(name)) return TURTLE_VENT_COLORS
     return SHINGLE_COLORS
+  }
+  const isAccessoryId = (id?: string) => String(id || '').startsWith('accessory-')
+  const setRowQty = (id: string, value: string) => {
+    const num = Math.max(0, parseInt(value.replace(/\D/g, ''), 10) || 0)
+    setQtyOverrides(p => ({ ...p, [id]: num }))
   }
 
   const onPrint = () => {
@@ -576,6 +590,36 @@ export default function MaterialOrder() {
       pdf.line(marginLeft, rowTop + rowH, marginLeft + availableWidth, rowTop + rowH)
       return rowH
     }
+    // Save material order to history
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        const total_cost = materials.reduce((sum, it) => sum + ((qtyOverrides[it.id] ?? it.quantity) * (it.pricePerUnit || 0)), 0)
+        await fetch(`${apiBase()}/api/material-orders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            po_name: poName,
+            address: poAddress,
+            estimator_name: estimatorName,
+            estimator_email: estimatorEmail,
+            items: materials.map(it => ({
+              id: it.id,
+              itemName: it.itemName,
+              unitOfMeasure: it.unitOfMeasure,
+              quantity: qtyOverrides[it.id] ?? it.quantity,
+              pricePerUnit: it.pricePerUnit,
+              totalCost: (qtyOverrides[it.id] ?? it.quantity) * (it.pricePerUnit || 0),
+              color: needsColor(it.itemName) ? (isChimneyKit(it.itemName) || isCaulkTube(it.itemName) ? defaultColorFor(it.itemName) : (colors[it.id] ?? defaultColorFor(it.itemName))) : null,
+            })),
+            total_cost
+          })
+        })
+      }
+    } catch {}
     drawHeader()
     let y = tableStartY
     for (const item of materials) {
@@ -800,9 +844,24 @@ export default function MaterialOrder() {
                       <tr key={item.id}>
                         <td className="px-4 py-2 text-sm text-gray-900">{item.itemName}</td>
                         <td className="px-4 py-2 text-sm text-gray-700">{item.unitOfMeasure}</td>
-                        <td className="px-4 py-2 text-sm text-gray-700">{item.quantity}</td>
+                        <td className="px-4 py-2 text-sm text-gray-700">
+                          {isAccessoryId(item.id) ? (
+                            <span>{item.quantity}</span>
+                          ) : (
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={(qtyOverrides[item.id] ?? item.quantity) || 0}
+                              onChange={(e)=>setRowQty(item.id, e.target.value)}
+                              className="w-24 px-2 py-1 border border-gray-300 rounded-md text-right"
+                            />
+                          )}
+                        </td>
                         <td className="px-4 py-2 text-sm text-gray-700">${item.pricePerUnit.toFixed(2)}</td>
-                        <td className="px-4 py-2 text-sm text-gray-700">${item.totalCost.toFixed(2)}</td>
+                        <td className="px-4 py-2 text-sm text-gray-700">
+                          ${((qtyOverrides[item.id] ?? item.quantity) * item.pricePerUnit).toFixed(2)}
+                        </td>
                         <td className="px-4 py-2 text-sm text-gray-700">
                           {needsColor(item.itemName) ? (
                             isChimneyKit(item.itemName) || isCaulkTube(item.itemName) ? (
