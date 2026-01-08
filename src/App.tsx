@@ -5,6 +5,7 @@ import { User } from "@supabase/supabase-js"
 import Login from "./pages/Login"
 import Upload from "./pages/Upload"
 import MaterialOrder from "./pages/MaterialOrder"
+import Profile from "./pages/Profile"
 import Estimate from "./pages/Estimate"
 import History from "./pages/History"
 import Navigation from "./components/Navigation"
@@ -59,6 +60,10 @@ function App() {
           <Route 
             path="/history" 
             element={user ? <History /> : <Navigate to="/login" replace />} 
+          />
+          <Route
+            path="/profile"
+            element={user ? <Profile /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/material-order"

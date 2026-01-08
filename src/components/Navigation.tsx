@@ -38,6 +38,7 @@ export default function Navigation() {
     { name: 'Dashboard', href: '/history', icon: Home },
     { name: 'New Estimate', href: '/upload', icon: Upload },
     ...(isAdmin ? [{ name: 'New Material Order', href: '/material-order', icon: Building2 }] : []),
+    { name: 'Profile', href: '/profile', icon: User },
     { name: 'History', href: '/history', icon: History },
   ]
 

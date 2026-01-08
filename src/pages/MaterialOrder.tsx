@@ -382,7 +382,9 @@ export default function MaterialOrder() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const user = session?.user as any
-      const name = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.display_name || ''
+      const fn = user?.user_metadata?.first_name || ''
+      const ln = user?.user_metadata?.last_name || ''
+      const name = `${fn} ${ln}`.trim() || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.display_name || ''
       const email = user?.email || ''
       setEstimatorName(name || '')
       setEstimatorEmail(email || '')
