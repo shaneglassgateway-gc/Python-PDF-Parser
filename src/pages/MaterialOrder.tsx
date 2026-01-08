@@ -462,13 +462,14 @@ export default function MaterialOrder() {
       colWs.push(w)
       accX += w
     })
+
     const headerHeight = 28
     const baseRowHeight = 24
     const headerTop = marginTop + 130
     const lineHeight = 14
     const topPad = 10
     const bottomPad = 10
-    const tableStartY = headerTop + headerHeight + 16
+    const tableStartY = headerTop + headerHeight + 1
     const loadLogo = () =>
       new Promise<string | null>(resolve => {
         const img = new Image()
