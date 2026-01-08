@@ -17,11 +17,17 @@ export default function Navigation() {
   const location = useLocation()
   const navigate = useNavigate()
   const [isAdmin, setIsAdmin] = useState(false)
+  const [userName, setUserName] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const role = (session?.user as any)?.user_metadata?.role
       setIsAdmin(role === 'admin')
+      const user = session?.user as any
+      const fn = user?.user_metadata?.first_name || ''
+      const ln = user?.user_metadata?.last_name || ''
+      const name = `${fn} ${ln}`.trim() || user?.user_metadata?.full_name || user?.user_metadata?.display_name || user?.email || ''
+      setUserName(name)
     })
   }, [])
 
@@ -94,6 +100,9 @@ export default function Navigation() {
                     <User className="h-4 w-4 text-blue-600" />
                   </div>
                 </div>
+                <div className="text-sm font-medium text-gray-700">
+                  {userName}
+                </div>
                 <button
                   onClick={handleSignOut}
                   className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -154,7 +163,7 @@ export default function Navigation() {
                 </div>
               </div>
               <div className="ml-3">
-                <div className="text-base font-medium text-gray-800">User</div>
+                <div className="text-base font-medium text-gray-800">{userName || 'User'}</div>
                 <div className="text-sm text-gray-500">Logged in</div>
               </div>
             </div>
