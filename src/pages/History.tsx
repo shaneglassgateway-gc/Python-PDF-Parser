@@ -360,7 +360,6 @@ export default function History() {
               </div>
             ))}
           </div>
-        )} 
         ) : (
           materialOrders.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
