@@ -266,8 +266,8 @@ export default function History() {
         </div>
 
         {/* Lists */}
-        {activeTab==='estimates' ? (
-        filteredAndSortedEstimates.length === 0 ? (
+        {activeTab === 'estimates' ? (
+          filteredAndSortedEstimates.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
             <div className="text-gray-400 mb-4">
               <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -288,10 +288,10 @@ export default function History() {
               Create Your First Estimate
             </button>
           </div>
-        ) : (
+          ) : (
           <div className="grid grid-cols-1 gap-4">
             {filteredAndSortedEstimates.map((estimate) => (
-              <div key={estimate.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div key={estimate.id} className="bg白 rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-3 mb-2">
@@ -360,6 +360,7 @@ export default function History() {
               </div>
             ))}
           </div>
+          )
         ) : (
           materialOrders.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
