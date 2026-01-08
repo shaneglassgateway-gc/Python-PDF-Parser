@@ -527,21 +527,31 @@ export default function MaterialOrder() {
       const nameLinesCount = Array.isArray(nameLines) ? nameLines.length : 1
       const colorLinesCount = Array.isArray(colorLines) ? colorLines.length : 1
       const linesCount = Math.max(nameLinesCount, colorLinesCount)
-      const rowH = Math.max(baseRowHeight, linesCount * 12)
+      const rowH = Math.max(baseRowHeight, topPad + linesCount * lineHeight + bottomPad)
       // vertical lines for the row
       pdf.setDrawColor(220, 220, 220)
       for (let i = 0; i < colXs.length; i++) {
         pdf.line(colXs[i], rowTop, colXs[i], rowTop + rowH)
       }
       pdf.line(marginLeft + availableWidth, rowTop, marginLeft + availableWidth, rowTop + rowH)
-      // text
-      const textBaseline = rowTop + 14
-      pdf.text(nameLines, colXs[0] + 6, textBaseline)
-      pdf.text(String(item.unitOfMeasure || ''), colXs[1] + 6, textBaseline)
-      pdf.text(String(item.quantity ?? 0), colXs[2] + 6, textBaseline)
-      pdf.text(fmtMoney(item.pricePerUnit), colXs[3] + 6, textBaseline)
-      pdf.text(fmtMoney(item.totalCost), colXs[4] + 6, textBaseline)
-      pdf.text(colorLines, colXs[5] + 6, textBaseline)
+      // top separator for row
+      pdf.line(marginLeft, rowTop, marginLeft + availableWidth, rowTop)
+      // text with controlled spacing
+      let yText = rowTop + topPad
+      const renderLines = (lines: string | string[], x: number) => {
+        const arr = Array.isArray(lines) ? lines : [String(lines)]
+        let yy = yText
+        for (const ln of arr) {
+          pdf.text(String(ln), x, yy)
+          yy += lineHeight
+        }
+      }
+      renderLines(nameLines, colXs[0] + 6)
+      pdf.text(String(item.unitOfMeasure || ''), colXs[1] + 6, yText)
+      pdf.text(String(item.quantity ?? 0), colXs[2] + 6, yText)
+      pdf.text(fmtMoney(item.pricePerUnit), colXs[3] + 6, yText)
+      pdf.text(fmtMoney(item.totalCost), colXs[4] + 6, yText)
+      renderLines(colorLines, colXs[5] + 6)
       // bottom separator
       pdf.line(marginLeft, rowTop + rowH, marginLeft + availableWidth, rowTop + rowH)
       return rowH
@@ -561,7 +571,7 @@ export default function MaterialOrder() {
       const colorLines = pdf.splitTextToSize(String(colorText || ''), colorCellWidth)
       const nameLinesCount = Array.isArray(nameLines) ? nameLines.length : 1
       const colorLinesCount = Array.isArray(colorLines) ? colorLines.length : 1
-      const neededH = Math.max(baseRowHeight, Math.max(nameLinesCount, colorLinesCount) * 12)
+      const neededH = Math.max(baseRowHeight, topPad + Math.max(nameLinesCount, colorLinesCount) * lineHeight + bottomPad)
       if (y + neededH + 16 > pageHeight - marginTop) {
         pdf.addPage()
         if (logoData) {
