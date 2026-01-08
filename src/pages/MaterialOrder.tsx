@@ -464,8 +464,8 @@ export default function MaterialOrder() {
     })
     const headerHeight = 28
     const baseRowHeight = 22
-    const headerY = marginTop + 130
-    const tableStartY = headerY + headerHeight + 8
+    const headerTop = marginTop + 130
+    const tableStartY = headerTop + headerHeight + 10
     const loadLogo = () =>
       new Promise<string | null>(resolve => {
         const img = new Image()
@@ -495,24 +495,24 @@ export default function MaterialOrder() {
     pdf.text(`Address: ${poAddress || ''}`, marginLeft, marginTop + 24)
     const drawHeader = () => {
       pdf.setFillColor(240, 240, 240)
-      pdf.rect(marginLeft, headerY - headerHeight + 6, availableWidth, headerHeight, 'F')
+      pdf.rect(marginLeft, headerTop, availableWidth, headerHeight, 'F')
       pdf.setFont('helvetica', 'bold')
       pdf.setFontSize(10)
       const headers = ['Name', 'Unit', 'Quantity', 'Price', 'Total', 'Color']
       headers.forEach((h, i) => {
-        pdf.text(h, colXs[i] + 6, headerY)
+        pdf.text(h, colXs[i] + 6, headerTop + 18)
       })
       // column lines
       pdf.setDrawColor(200, 200, 200)
       for (let i = 0; i < colXs.length; i++) {
-        pdf.line(colXs[i], headerY - headerHeight + 6, colXs[i], headerY + 6)
+        pdf.line(colXs[i], headerTop, colXs[i], headerTop + headerHeight)
       }
       // right boundary
-      pdf.line(marginLeft + availableWidth, headerY - headerHeight + 6, marginLeft + availableWidth, headerY + 6)
+      pdf.line(marginLeft + availableWidth, headerTop, marginLeft + availableWidth, headerTop + headerHeight)
       // bottom line
-      pdf.line(marginLeft, headerY + 6, marginLeft + availableWidth, headerY + 6)
+      pdf.line(marginLeft, headerTop + headerHeight, marginLeft + availableWidth, headerTop + headerHeight)
     }
-    const drawRow = (y: number, item: MaterialItem) => {
+    const drawRow = (rowTop: number, item: MaterialItem) => {
       pdf.setFontSize(10)
       pdf.setFont('helvetica', 'normal')
       const nameCellWidth = colWs[0] - 12
@@ -531,18 +531,19 @@ export default function MaterialOrder() {
       // vertical lines for the row
       pdf.setDrawColor(220, 220, 220)
       for (let i = 0; i < colXs.length; i++) {
-        pdf.line(colXs[i], y - rowH + 6, colXs[i], y + 6)
+        pdf.line(colXs[i], rowTop, colXs[i], rowTop + rowH)
       }
-      pdf.line(marginLeft + availableWidth, y - rowH + 6, marginLeft + availableWidth, y + 6)
+      pdf.line(marginLeft + availableWidth, rowTop, marginLeft + availableWidth, rowTop + rowH)
       // text
-      pdf.text(nameLines, colXs[0] + 6, y)
-      pdf.text(String(item.unitOfMeasure || ''), colXs[1] + 6, y)
-      pdf.text(String(item.quantity ?? 0), colXs[2] + 6, y)
-      pdf.text(fmtMoney(item.pricePerUnit), colXs[3] + 6, y)
-      pdf.text(fmtMoney(item.totalCost), colXs[4] + 6, y)
-      pdf.text(colorLines, colXs[5] + 6, y)
+      const textBaseline = rowTop + 14
+      pdf.text(nameLines, colXs[0] + 6, textBaseline)
+      pdf.text(String(item.unitOfMeasure || ''), colXs[1] + 6, textBaseline)
+      pdf.text(String(item.quantity ?? 0), colXs[2] + 6, textBaseline)
+      pdf.text(fmtMoney(item.pricePerUnit), colXs[3] + 6, textBaseline)
+      pdf.text(fmtMoney(item.totalCost), colXs[4] + 6, textBaseline)
+      pdf.text(colorLines, colXs[5] + 6, textBaseline)
       // bottom separator
-      pdf.line(marginLeft, y + 6, marginLeft + availableWidth, y + 6)
+      pdf.line(marginLeft, rowTop + rowH, marginLeft + availableWidth, rowTop + rowH)
       return rowH
     }
     drawHeader()
