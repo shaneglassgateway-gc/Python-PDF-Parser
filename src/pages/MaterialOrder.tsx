@@ -374,6 +374,9 @@ export default function MaterialOrder() {
         if (isChimneyKit(it.itemName)) {
           next[it.id] = 'Black'
         }
+        if (isRidgeVent(it.itemName)) {
+          next[it.id] = 'Black'
+        }
         if (isCaulkTube(it.itemName)) {
           next[it.id] = 'Clear Plastic Cartridge'
         }
@@ -419,6 +422,7 @@ export default function MaterialOrder() {
     if (n.includes('hip ridge')) return true
     if (n.includes('hip and ridge')) return true
     if (n.includes('drip edge')) return true
+    if (isRidgeVent(name)) return true
     if (isDripEdge(name)) return true
     if (isTurtleVent(name)) return true
     if (isBaseFlashing(name)) return true
@@ -429,6 +433,10 @@ export default function MaterialOrder() {
   const isDripEdge = (name?: string) => {
     const n = norm(name)
     return n.includes('drip edge') || n.includes('roof edge') || n.includes('style sr') || n.includes('sr roof edge')
+  }
+  const isRidgeVent = (name?: string) => {
+    const n = norm(name)
+    return n.includes('ridge vent')
   }
   const isTurtleVent = (name?: string) => {
     const n = norm(name)
@@ -450,6 +458,7 @@ export default function MaterialOrder() {
   const defaultColorFor = (name?: string) => {
     if (isDripEdge(name)) return 'White'
     if (isChimneyKit(name)) return 'Black'
+    if (isRidgeVent(name)) return 'Black'
     if (isCaulkTube(name)) return 'Clear Plastic Cartridge'
     return ''
   }
@@ -875,7 +884,7 @@ export default function MaterialOrder() {
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-700">
                           {needsColor(item.itemName) ? (
-                            isChimneyKit(item.itemName) || isCaulkTube(item.itemName) ? (
+                            isChimneyKit(item.itemName) || isCaulkTube(item.itemName) || isRidgeVent(item.itemName) ? (
                               <span className="text-gray-700">{defaultColorFor(item.itemName)}</span>
                             ) : (
                               <select value={colors[item.id] ?? defaultColorFor(item.itemName)} onChange={(e)=>setColor(item.id, e.target.value)} className="border rounded px-2 py-1">
