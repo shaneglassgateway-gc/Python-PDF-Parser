@@ -27,6 +27,7 @@ export default function MaterialOrder() {
   const [estimatorName, setEstimatorName] = useState('')
   const [estimatorEmail, setEstimatorEmail] = useState('')
   const [qtyOverrides, setQtyOverrides] = useState<Record<string, number>>({})
+  const [ridgeVentEnabled, setRidgeVentEnabled] = useState(false)
   const [accessories, setAccessories] = useState({
     turtleVentsEnabled: false,
     turtleVentsQty: 0,
@@ -233,7 +234,7 @@ export default function MaterialOrder() {
         hasTrailerAccess: false,
         hasSecondLayer: false,
         lowPitchArea: 0,
-        hasRidgeVent: false,
+        hasRidgeVent: ridgeVentEnabled,
         pitchBreakdown: (((measRaw as any)?.pitch_breakdown || []) as any[]).map((p:any)=>({ pitch: String(p.pitch||''), squares: ((Number(p.area_sqft ?? 0))/100)||0 })),
       }
     } catch {
@@ -381,7 +382,7 @@ export default function MaterialOrder() {
     })
   }
 
-  useEffect(() => { if (data) compute() }, [data, includeDetached, rules, prices, accessories, qtyOverrides])
+  useEffect(() => { if (data) compute() }, [data, includeDetached, rules, prices, accessories, qtyOverrides, ridgeVentEnabled])
   useEffect(() => {
     if (data) {
       const addr = (data as any)?.property?.address || ''
@@ -810,6 +811,16 @@ export default function MaterialOrder() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between border rounded-md p-3">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={ridgeVentEnabled} onChange={(e)=>setRidgeVentEnabled(e.target.checked)} />
+                      <span>Ridge Vent</span>
+                    </label>
+                    <div className="text-sm text-gray-600">
+                      {ridgeVentEnabled ? 'Enabled' : 'Disabled'}
                     </div>
                   </div>
                   
