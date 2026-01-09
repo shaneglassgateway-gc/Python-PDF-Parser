@@ -65,6 +65,7 @@ export function calculateMaterialQuantities(
     let quantity = 0
     const nameLower = String(rule.materialName || '').toLowerCase()
     const isRidgeVentMaterial = /\bridge\s*vent\b/.test(nameLower)
+    const isElastomericSealant = /(elastomeric|sealant|caulk)/.test(nameLower)
     if (isRidgeVentMaterial && !measurements.hasRidgeVent) {
       return
     }
@@ -104,6 +105,12 @@ export function calculateMaterialQuantities(
         break
       default:
         quantity = 0
+    }
+    if (isRidgeVentMaterial && quantity > 0) {
+      quantity = quantity + 2
+    }
+    if (isElastomericSealant && quantity > 0) {
+      quantity = Math.max(2, quantity)
     }
     
     if (quantity > 0) {
