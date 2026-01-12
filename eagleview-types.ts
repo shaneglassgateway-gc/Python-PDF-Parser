@@ -148,7 +148,7 @@ export function getStructure1Measurements(data: EagleViewParserOutput) {
     step_flashing_ft: s1.measurements.step_flashing_ft,
     drip_edge_ft: s1.measurements.drip_edge_ft,
     predominant_pitch: s1.predominant_pitch,
-    suggested_squares: s1.suggested_waste?.squares || 0,
+    suggested_squares: (s1.suggested_waste?.squares ?? data.suggested_waste?.squares ?? 0),
     pitch_breakdown: s1.pitch_breakdown
   };
 }
@@ -167,6 +167,8 @@ export function getCombinedMeasurements(data: EagleViewParserOutput) {
   }
   
   // Combine measurements from both structures
+  const s1Squares = (s1.suggested_waste?.squares ?? data.suggested_waste?.squares ?? 0);
+  const s2Squares = (s2.suggested_waste?.squares ?? 0);
   return {
     total_area_sqft: s1.total_area_sqft + s2.total_area_sqft,
     ridges_ft: s1.measurements.ridges_ft + s2.measurements.ridges_ft,
@@ -178,7 +180,7 @@ export function getCombinedMeasurements(data: EagleViewParserOutput) {
     step_flashing_ft: s1.measurements.step_flashing_ft + s2.measurements.step_flashing_ft,
     drip_edge_ft: s1.measurements.drip_edge_ft + s2.measurements.drip_edge_ft,
     predominant_pitch: s1.predominant_pitch,  // Use main structure's pitch
-    suggested_squares: (s1.suggested_waste?.squares || 0) + (s2.suggested_waste?.squares || 0),
+    suggested_squares: s1Squares + s2Squares,
     pitch_breakdown: mergePitchBreakdowns(s1.pitch_breakdown, s2.pitch_breakdown)
   };
 }

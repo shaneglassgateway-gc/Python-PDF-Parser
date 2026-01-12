@@ -59,7 +59,14 @@ export function calculateMaterialQuantities(
   rules: MaterialOrderRule[]
 ): MaterialItem[] {
   const materials: MaterialItem[] = []
-  const effectiveSquares = Math.max(0, Math.ceil(measurements.roofAreaRounded ?? measurements.roofArea))
+  const effectiveSquares = Math.max(
+    0,
+    Math.ceil(
+      (measurements.roofAreaRounded && measurements.roofAreaRounded > 0)
+        ? measurements.roofAreaRounded
+        : measurements.roofArea
+    )
+  )
   
   rules.forEach(rule => {
     let quantity = 0

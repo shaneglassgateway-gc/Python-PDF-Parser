@@ -364,20 +364,25 @@ class EagleViewParser:
         suggested_waste = None
         
         waste_section = re.search(
-            r'Waste\s*%\s*([\d%\s]+)\s*Area\s*\(Sq\s*ft\)\s*([\d,\s]+)\s*Squares\s*\*?\s*([\d.\s]+)',
+            r'Waste\s*%\s*[\s\S]*?Squares[\s\S]*?(?=Roof\s+Pitches|Structure\s+\d+|All\s+Structures|REPORT|PAGE|\Z)',
             structure_text,
             re.IGNORECASE
         )
         
         if waste_section:
-            pct_values = re.findall(r'(\d+)%?', waste_section.group(1))
-            area_values = re.findall(r'(\d+)', waste_section.group(2))
-            sq_values = re.findall(r'([\d.]+)', waste_section.group(3))
+            table_text = waste_section.group(0)
+            pct_values = re.findall(r'(\d+)\s*%?', table_text)
+            area_values = re.findall(r'Area\s*\(Sq\s*ft\)\s*[\s:]*([\d,]+)', table_text, re.IGNORECASE)
+            if not area_values:
+                area_values = re.findall(r'\b([\d,]{3,})\b', table_text)
+            sq_values = re.findall(r'Squares\s*\*?\s*[\s:]*([\d.]+)', table_text, re.IGNORECASE)
+            if not sq_values:
+                sq_values = re.findall(r'\b([\d]+\.[\d]+)\b', table_text)
             
             # Detect explicit "Suggested" label anywhere within this structure section
-            inline_match = re.search(r'(\d+)%[^\n]{0,200}?Suggested', structure_text, re.IGNORECASE)
+            inline_match = re.search(r'(\d+)%[^\n]{0,200}?Suggested', table_text, re.IGNORECASE)
             if not inline_match:
-                inline_match = re.search(r'Suggested[^\n]{0,200}?(\d+)%', structure_text, re.IGNORECASE)
+                inline_match = re.search(r'Suggested[^\n]{0,200}?(\d+)%', table_text, re.IGNORECASE)
             suggested_pct = None
             if inline_match:
                 try:
@@ -393,30 +398,36 @@ class EagleViewParser:
                 pitches_in_section = []
                 if pitch_section:
                     pitches_in_section = re.findall(r'(\d+)/12', pitch_section.group(1))
-                steep_pitches = [int(p) for p in pitches_in_section if int(p) >= 12]
+                steep_pitches = [int(p) for p in pitches_in_section if int(p) >= 10]
                 has_steep = len(steep_pitches) > 0
                 has_multiple_pitches = len(set(pitches_in_section)) > 1
                 if has_steep:
-                    suggested_idx = 6
+                    # Prefer 18% if available for steep roofs
+                    if pct_values and '18' in pct_values:
+                        suggested_pct = 18
+                        suggested_idx = pct_values.index('18')
+                    else:
+                        suggested_idx = 5
                 elif has_multiple_pitches:
                     suggested_idx = 4
                 else:
                     suggested_idx = 3
-                suggested_idx = min(suggested_idx, len(pct_values) - 1) if pct_values else 0
-                try:
-                    suggested_pct = int(pct_values[suggested_idx]) if pct_values else None
-                except Exception:
-                    suggested_pct = None
+                if suggested_pct is None:
+                    suggested_idx = min(suggested_idx, len(pct_values) - 1) if pct_values else 0
+                    try:
+                        suggested_pct = int(pct_values[suggested_idx]) if pct_values else None
+                    except Exception:
+                        suggested_pct = None
             
             for i, pct in enumerate(pct_values):
                 if i < len(area_values) and i < len(sq_values):
                     try:
                         pct_int = int(pct)
-                        is_suggested = (pct_int == suggested_pct)
+                        is_suggested = (suggested_pct is not None and pct_int == suggested_pct)
                         
                         wc = WasteCalculation(
                             waste_percent=pct_int,
-                            area_sqft=float(area_values[i]),
+                            area_sqft=float(area_values[i].replace(',', '')) if isinstance(area_values[i], str) else float(area_values[i]),
                             squares=float(sq_values[i]),
                             is_suggested=is_suggested
                         )

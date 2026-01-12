@@ -221,9 +221,11 @@ export default function MaterialOrder() {
           pitchBreakdown: [],
         }
       }
+      const totalSq = ((Number((measRaw as any)?.total_area_sqft ?? 0))/100)||0
+      const suggested = Number((measRaw as any)?.suggested_squares ?? 0)
       return {
-        roofArea: ((Number((measRaw as any)?.total_area_sqft ?? 0))/100)||0,
-        roofAreaRounded: Number((measRaw as any)?.suggested_squares ?? ((Number((measRaw as any)?.total_area_sqft ?? 0))/100)) || 0,
+        roofArea: totalSq,
+        roofAreaRounded: suggested > 0 ? suggested : totalSq,
         eavesLength: Number((measRaw as any)?.eaves_ft ?? 0) || 0,
         rakesLength: Number((measRaw as any)?.rakes_ft ?? 0) || 0,
         valleysLength: Number((measRaw as any)?.valleys_ft ?? 0) || 0,
@@ -761,7 +763,7 @@ export default function MaterialOrder() {
                   const m = buildMeasurements()
                   return (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-sm text-gray-700">
-                      <div>Effective Squares: {Math.ceil(Number((m as any).roofAreaRounded ?? (m as any).roofArea ?? 0))}</div>
+                      <div>Effective Squares: {Math.ceil(((m as any).roofAreaRounded > 0 ? (m as any).roofAreaRounded : (m as any).roofArea) || 0)}</div>
                       <div>Eaves+Rakes LF: {Number((m.eavesLength || 0) + (m.rakesLength || 0)).toFixed(0)}</div>
                       <div>Ridges+Hips LF: {Number((m.ridgesLength || 0) + (m.hipsLength || 0)).toFixed(0)}</div>
                     </div>

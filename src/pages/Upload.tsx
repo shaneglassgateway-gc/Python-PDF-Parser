@@ -217,9 +217,11 @@ export default function Upload() {
       
       // Create estimate data
       const meas = includeDetachedStructure ? getCombinedMeasurements(eagleViewData) : getStructure1Measurements(eagleViewData)
+      const totalSq = ((meas?.total_area_sqft || 0) / 100) || 0
+      const suggested = Number(meas?.suggested_squares ?? 0)
       const roofMeasurements = {
-        roofArea: ((meas?.total_area_sqft || 0) / 100) || 0,
-        roofAreaRounded: Number((meas?.suggested_squares ?? ((meas?.total_area_sqft || 0) / 100))) || 0,
+        roofArea: totalSq,
+        roofAreaRounded: Math.ceil(suggested > 0 ? suggested : totalSq),
         eavesLength: meas?.eaves_ft || 0,
         rakesLength: meas?.rakes_ft || 0,
         valleysLength: meas?.valleys_ft || 0,
