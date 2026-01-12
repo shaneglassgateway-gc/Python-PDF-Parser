@@ -4,3 +4,4 @@ pdfplumber
 pdfminer.six
 pillow
 python-multipart
+pytesseract

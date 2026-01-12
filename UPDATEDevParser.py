@@ -297,45 +297,39 @@ class EagleViewParser:
             pct_values = re.findall(r'(\d+)%?', waste_section.group(1))
             area_values = re.findall(r'(\d+)', waste_section.group(2))
             sq_values = re.findall(r'([\d.]+)', waste_section.group(3))
-
-            # Primary: detect the column with an explicit "Suggested" label, regardless of position.
+            
+            # Determine suggested waste percentage
+            # EagleView typically marks one column as "Suggested" - usually 10% for normal complexity
+            # Look for explicit "Suggested" marker position or use the bolded/highlighted one
             suggested_pct = None
-            table_text = waste_section.group(0)
-            # Try to associate Suggested with a nearby percent explicitly in the same textual vicinity
-            inline_match = re.search(r'(\d+)%[^\n]{0,120}?Suggested', table_text, re.IGNORECASE)
-            if not inline_match:
-                inline_match = re.search(r'Suggested[^\n]{0,120}?(\d+)%', table_text, re.IGNORECASE)
-            if inline_match:
-                try:
-                    suggested_pct = int(inline_match.group(1))
-                except ValueError:
-                    suggested_pct = None
-
-            # Fallback: heuristic based on pitch complexity if explicit label not found
-            if suggested_pct is None:
-                try:
-                    pitch_section = re.search(
-                        r'Areas?\s+per\s+Pitch.*?Roof\s+Pitches?\s+([\d/\s]+)\s*Area\s*\(sq\s*ft\)\s*([\d.,\s]+)\s*%\s*of\s*Roof\s*([\d.%\s]+)',
-                        self.text_content,
-                        re.DOTALL | re.IGNORECASE
-                    )
-                    pitches_in_section = []
-                    if pitch_section:
-                        pitches_in_section = re.findall(r'(\d+)/12', pitch_section.group(1))
-                    steep_pitches = [int(p) for p in pitches_in_section if int(p) >= 12]
-                    has_steep = len(steep_pitches) > 0
-                    has_multiple_pitches = len(set(pitches_in_section)) > 1
-                    if has_steep:
-                        suggested_idx = 6
-                    elif has_multiple_pitches:
-                        suggested_idx = 4
-                    else:
-                        suggested_idx = 3
-                except Exception:
-                    suggested_idx = max(0, min(3, (len(pct_values) // 2)))
-                suggested_idx = min(suggested_idx, len(pct_values) - 1) if pct_values else 0
-                suggested_pct = int(pct_values[suggested_idx]) if pct_values else None
-
+            
+            # Check if there's explicit text indicating suggested percentage
+            suggested_match = re.search(
+                r'(\d+)%\s*\n?\s*Area.*?Suggested|Suggested.*?(\d+)%',
+                self.text_content,
+                re.IGNORECASE | re.DOTALL
+            )
+            
+            # In most EagleView reports, 10% is suggested for normal complexity
+            # The pattern shows columns with "Measured" under 0% and "Suggested" typically under 10%
+            # Count position of "Suggested" label if it appears after the table
+            full_waste_section = re.search(
+                r'Waste\s*%\s*([\d%\s]+).*?Measured\s*(Suggested)?',
+                self.text_content,
+                re.IGNORECASE | re.DOTALL
+            )
+            
+            if full_waste_section and 'Suggested' in self.text_content:
+                # Find which column has the suggested marker
+                # Typically it's the 4th column (index 3) which is 10%
+                # But let's check if 10% exists in the values
+                if '10' in pct_values:
+                    suggested_pct = 10
+                else:
+                    # Default to middle value
+                    mid_idx = len(pct_values) // 2
+                    suggested_pct = int(pct_values[mid_idx]) if pct_values else None
+            
             for i, pct in enumerate(pct_values):
                 if i < len(area_values) and i < len(sq_values):
                     try:
@@ -358,11 +352,12 @@ class EagleViewParser:
         
         return waste_calcs, suggested_waste
     
-    def _parse_structure_waste(self, structure_text: str, struct_num: int) -> Tuple[List[WasteCalculation], Optional[WasteCalculation]]:
+    def _parse_structure_waste(self, structure_text: str) -> Tuple[List[WasteCalculation], Optional[WasteCalculation]]:
         """Parse waste calculations for a single structure section"""
         waste_calcs = []
         suggested_waste = None
         
+        # Look for the waste table pattern
         waste_section = re.search(
             r'Waste\s*%\s*([\d%\s]+)\s*Area\s*\(Sq\s*ft\)\s*([\d,\s]+)\s*Squares\s*\*?\s*([\d.\s]+)',
             structure_text,
@@ -374,30 +369,48 @@ class EagleViewParser:
             area_values = re.findall(r'(\d+)', waste_section.group(2))
             sq_values = re.findall(r'([\d.]+)', waste_section.group(3))
             
-            # Determine suggested index based on structure complexity (from UPDATEDevParser)
+            # Determine complexity based on pitch analysis (not text parsing)
             pitch_section = re.search(
                 r'Roof\s+Pitches?\s+([\d/\s]+)\s*Area\s*\(sq\s*ft\)',
                 structure_text,
                 re.IGNORECASE
             )
+            
             pitches_in_section = []
             if pitch_section:
                 pitches_in_section = re.findall(r'(\d+)/12', pitch_section.group(1))
+            
+            # Determine complexity based on pitches
             steep_pitches = [int(p) for p in pitches_in_section if int(p) >= 12]
             has_steep = len(steep_pitches) > 0
             num_unique_pitches = len(set(pitches_in_section))
             has_high_pitch = any(int(p) >= 10 for p in pitches_in_section)
+            
+            # Determine suggested index based on complexity
+            # EagleView standard waste columns: 0%, 3%, 8%, 13%, 16%, 18%, 20%, 23%, 28%
+            # Simple (single gentle pitch): index 3-4 (13-16%)
+            # Normal (multiple pitches or steeper single): index 5 (18%)
+            # Complex (steep pitches >=12/12 or many varied pitches): index 6-7 (20-23%)
+            
             if has_steep:
+                # Complex structure - steep pitch
                 suggested_idx = 6
             elif num_unique_pitches >= 3 or (num_unique_pitches >= 2 and has_high_pitch):
+                # Normal complexity - multiple pitches with some steep
                 suggested_idx = 5
             elif num_unique_pitches == 2:
+                # Normal complexity - two different pitches
                 suggested_idx = 5
             else:
+                # Simple structure - single pitch
                 suggested_idx = 3
-            # Very high waste percentages (small structures): last column
+            
+            # For very high waste percentages (like 64%+), suggested is at the end
+            # These are typically very small structures
             if pct_values and int(pct_values[-1]) > 50:
                 suggested_idx = len(pct_values) - 1
+            
+            # Ensure index is within bounds
             suggested_idx = min(suggested_idx, len(pct_values) - 1) if pct_values else 0
             suggested_pct = int(pct_values[suggested_idx]) if pct_values else None
             
@@ -406,6 +419,7 @@ class EagleViewParser:
                     try:
                         pct_int = int(pct)
                         is_suggested = (pct_int == suggested_pct)
+                        
                         wc = WasteCalculation(
                             waste_percent=pct_int,
                             area_sqft=float(area_values[i]),
@@ -413,114 +427,12 @@ class EagleViewParser:
                             is_suggested=is_suggested
                         )
                         waste_calcs.append(wc)
+                        
                         if is_suggested:
                             suggested_waste = wc
+                            
                     except ValueError:
                         continue
-        else:
-            # OCR fallback: try to get text from the page containing this structure
-            try:
-                import pdfplumber as _pp
-                from PIL import Image
-                import pytesseract, os
-                # Allow configuration of tesseract binary via env
-                tess_cmd = os.environ.get('TESSERACT_CMD') or os.environ.get('TESSERACT_PATH')
-                if tess_cmd:
-                    try:
-                        pytesseract.pytesseract.tesseract_cmd = tess_cmd
-                    except Exception:
-                        pass
-                tessdata_prefix = os.environ.get('TESSDATA_PREFIX')
-                page_index = None
-                for idx, ptxt in enumerate(self.pages_text):
-                    if re.search(rf'\bStructure[\s:#\-]*{struct_num}\b', ptxt, re.IGNORECASE):
-                        page_index = idx
-                        break
-                if page_index is not None:
-                    with _pp.open(self.pdf_path) as pdf:
-                        page = pdf.pages[page_index]
-                        # Crop lower portion where waste table typically resides
-                        width = page.width
-                        height = page.height
-                        crop = page.crop((0, height * 0.55, width, height * 0.98))
-                        crop_img = crop.to_image(resolution=300).original.convert("L")
-                        crop_img = crop_img.point(lambda x: 255 if x > 200 else (0 if x < 80 else x))
-                        ocr_text = pytesseract.image_to_string(crop_img, lang="eng", config="--psm 6")
-                        # Re-run waste detection on OCR text
-                        waste_section_ocr = re.search(
-                            r'Waste\s*%\s*[\s\S]*?Squares[\s\S]*?(?=Roof\s+Pitches|Structure\s+\d+|All\s+Structures|REPORT|PAGE|\Z)',
-                            ocr_text,
-                            re.IGNORECASE
-                        )
-                        if waste_section_ocr:
-                            table_text = waste_section_ocr.group(0)
-                            inline_match = re.search(r'(\d+)\s*%[^\n]{0,300}?Suggested', table_text, re.IGNORECASE)
-                            if not inline_match:
-                                inline_match = re.search(r'Suggested[^\n]{0,300}?(\d+)\s*%', table_text, re.IGNORECASE)
-                            suggested_pct = None
-                            if inline_match:
-                                try:
-                                    suggested_pct = int(inline_match.group(1))
-                                except Exception:
-                                    suggested_pct = None
-                            if suggested_pct is not None:
-                                # Try to anchor by squares above the "Suggested" label
-                                try:
-                                    prev_sq = None
-                                    suggest_pos = inline_match.start()
-                                    for m in re.finditer(r'Squares\s*\*?\s*[\s:]*([\d.]+)', table_text, re.IGNORECASE):
-                                        if m.end() <= suggest_pos:
-                                            prev_sq = m.group(1)
-                                    # compute area/squares if structure area available; otherwise, return at least the waste percent
-                                    if prev_sq:
-                                        try:
-                                            squares = float(prev_sq)
-                                            area_sqft = round(squares * 100.0, 2)  # area including waste; raw area not available here reliably
-                                            wc = WasteCalculation(
-                                                waste_percent=suggested_pct,
-                                                area_sqft=area_sqft,
-                                                squares=squares,
-                                                is_suggested=True
-                                            )
-                                            waste_calcs.append(wc)
-                                            suggested_waste = wc
-                                        except Exception:
-                                            pass
-                                except Exception:
-                                    pass
-                                # Compute squares and area from structure area since OCR table numbers may be unreliable
-                                # Attempt to extract structure area from known measurements table or previously gathered struct_measurements
-                                # Fallback: try to parse area from text; else skip
-                                total_area_match = re.search(r'Area\s*[:\-]?\s*([\d,]+(?:\.\d+)?)\s*sq', self.text_content, re.IGNORECASE)
-                                area_sqft = None
-                                try:
-                                    # Prefer structured value if available: we will try to locate structure in parse_structures later
-                                    # Here we approximate by finding area in current structure_text
-                                    area_in_struct = re.search(r'Area\s*[:\-]?\s*([\d,]+(?:\.\d+)?)\s*sq', structure_text, re.IGNORECASE)
-                                    if area_in_struct:
-                                        area_sqft = float(area_in_struct.group(1).replace(',', ''))
-                                except Exception:
-                                    area_sqft = None
-                                # As a fallback, try to find any large number near "Squares" header (not ideal but better than missing)
-                                if area_sqft is None:
-                                    approx_area = re.findall(r'\b([\d,]{3,})\b', structure_text)
-                                    if approx_area:
-                                        try:
-                                            area_sqft = float(approx_area[0].replace(',', ''))
-                                        except Exception:
-                                            area_sqft = None
-                                if area_sqft and area_sqft > 0:
-                                    squares = round((area_sqft * (1 + suggested_pct / 100.0)) / 100.0, 2)
-                                    wc = WasteCalculation(
-                                        waste_percent=suggested_pct,
-                                        area_sqft=round(area_sqft * (1 + suggested_pct / 100.0), 2),
-                                        squares=squares,
-                                        is_suggested=True
-                                    )
-                                    waste_calcs.append(wc)
-                                    suggested_waste = wc
-            except Exception:
-                pass
         
         return waste_calcs, suggested_waste
     
@@ -556,32 +468,43 @@ class EagleViewParser:
         return pitches
     
     def parse_structures(self) -> List[Structure]:
-        """Parse individual structure data using REPORT SUMMARY sections (from UPDATEDevParser)"""
+        """Parse individual structure data for multi-structure reports"""
         structures = []
-        # Identify REPORT SUMMARY Structure sections
+        
+        # Find REPORT SUMMARY sections with Structure #N headers
+        # These contain the waste tables and pitch breakdowns we need
         report_summary_sections = list(re.finditer(
             r'REPORT\s+SUMMARY\s*\n\s*Structure\s*#?\s*(\d+)',
             self.text_content,
             re.IGNORECASE
         ))
+        
         if len(report_summary_sections) < 1:
+            # Try alternate pattern - just Structure #N in Report Summary context
             report_summary_sections = list(re.finditer(
                 r'Structure\s*#?\s*(\d+)\s*\n\s*Areas\s+per\s+Pitch',
                 self.text_content,
                 re.IGNORECASE
             ))
+        
         if len(report_summary_sections) < 1:
+            # Single structure report - no need to parse individual structures
             return structures
+        
+        # Find "All Structures" section position
         all_structures_match = re.search(r'All\s+Structures\s*\n\s*Areas\s+per\s+Pitch', self.text_content, re.IGNORECASE)
         all_structures_pos = all_structures_match.start() if all_structures_match else len(self.text_content)
-        # Measurements by Structure (optional)
+        
+        # Parse measurements by structure table if available
         struct_measurements = {}
         mbs_match = re.search(
             r'Measurements\s+by\s+Structure.*?Structure.*?Area.*?Ridges.*?\n(.*?)(?:All\s+values|Online)',
             self.text_content,
             re.DOTALL | re.IGNORECASE
         )
+        
         if mbs_match:
+            # Parse each row: Structure Area Ridges Hips Valleys Rakes Eaves Flashing StepFlashing Parapets
             rows = re.findall(
                 r'(\d+)\s+([\d,]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',
                 mbs_match.group(1)
@@ -599,20 +522,52 @@ class EagleViewParser:
                     'step_flashing': float(row[8]),
                     'parapets': float(row[9])
                 }
-        # Parse each REPORT SUMMARY section
+        
+        # Parse each structure's REPORT SUMMARY section
         for i, match in enumerate(report_summary_sections):
             struct_num = int(match.group(1))
             start_pos = match.start()
-            end_pos = report_summary_sections[i + 1].start() if i + 1 < len(report_summary_sections) else all_structures_pos
+            
+            # Determine end of this structure's section
+            if i + 1 < len(report_summary_sections):
+                end_pos = report_summary_sections[i + 1].start()
+            else:
+                end_pos = all_structures_pos
+            
             struct_text = self.text_content[start_pos:end_pos]
+            
+            # Parse structure-specific data
             pitch_breakdown = self._parse_structure_pitches(struct_text)
-            waste_calcs, suggested_waste = self._parse_structure_waste(struct_text, struct_num)
-            # Predominant pitch and facets
-            pred_pitch_match = re.search(r'Predominant\s+Pitch\s*[=:]\s*(\d+/\d+)', struct_text, re.IGNORECASE)
+            waste_calcs, suggested_waste = self._parse_structure_waste(struct_text)
+            
+            # Detect complexity from the Structure Complexity section
+            complexity = None
+            complexity_section = re.search(r'Structure\s+Complexity\s*(Simple|Normal|Complex)', struct_text, re.IGNORECASE)
+            if complexity_section:
+                # The complexity indicator shows Simple, Normal, Complex - find which is highlighted
+                # Usually the PDF text just lists them but the highlighted one appears differently
+                # For now, parse based on pitches
+                pass
+            
+            # Check for complexity based on steep pitches or multiple varied pitches
+            pitches_in_section = [p.pitch for p in pitch_breakdown]
+            steep_pitches = [p for p in pitches_in_section if int(p.split('/')[0]) >= 12]
+            if steep_pitches:
+                complexity = "Complex"
+            elif len(set(pitches_in_section)) > 2:
+                complexity = "Normal"
+            else:
+                complexity = "Simple"
+            
+            # Get predominant pitch
+            pred_pitch_match = re.search(r'Predominant\s+Pitch\s*[=:]\s*(\d+/\d+)', struct_text)
             predominant_pitch = pred_pitch_match.group(1) if pred_pitch_match else ""
-            facets_match = re.search(r'Total\s+Roof\s+Facets\s*[=:]\s*(\d+)', struct_text, re.IGNORECASE)
+            
+            # Get total facets for this structure
+            facets_match = re.search(r'Total\s+Roof\s+Facets\s*[=:]\s*(\d+)', struct_text)
             total_facets = int(facets_match.group(1)) if facets_match else 0
-            # Measurements
+            
+            # Get area from struct_measurements or parse from text
             if struct_num in struct_measurements:
                 meas = struct_measurements[struct_num]
                 total_area = meas['area']
@@ -624,32 +579,31 @@ class EagleViewParser:
                 flashing = meas['flashing']
                 step_flashing = meas['step_flashing']
             else:
-                area_match = re.search(r'Total\s+Area\s*\(All\s+Pitches\)\s*[=:]\s*([\d,]+)', struct_text, re.IGNORECASE)
+                # Parse from structure text
+                area_match = re.search(r'Total\s+Area\s*\(All\s+Pitches\)\s*[=:]\s*([\d,]+)', struct_text)
                 total_area = float(area_match.group(1).replace(',', '')) if area_match else 0
-                ridges_match = re.search(r'Ridges\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
+                
+                ridges_match = re.search(r'Ridges\s*[=:]\s*(\d+)', struct_text)
                 ridges = float(ridges_match.group(1)) if ridges_match else 0
-                hips_match = re.search(r'(?<!/)\bHips?\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
+                
+                hips_match = re.search(r'(?<!/)\bHips?\s*[=:]\s*(\d+)', struct_text)
                 hips = float(hips_match.group(1)) if hips_match else 0
-                valleys_match = re.search(r'Valleys\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
+                
+                valleys_match = re.search(r'Valleys\s*[=:]\s*(\d+)', struct_text)
                 valleys = float(valleys_match.group(1)) if valleys_match else 0
-                rakes_match = re.search(r'Rakes\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
+                
+                rakes_match = re.search(r'Rakes\s*[=:]\s*(\d+)', struct_text)
                 rakes = float(rakes_match.group(1)) if rakes_match else 0
-                eaves_match = re.search(r'Eaves\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
+                
+                eaves_match = re.search(r'Eaves\s*[=:]\s*(\d+)', struct_text)
                 eaves = float(eaves_match.group(1)) if eaves_match else 0
-                flashing_match = re.search(r'(?<!Step\s)Flashing\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
+                
+                flashing_match = re.search(r'(?<!Step\s)Flashing\s*[=:]\s*(\d+)', struct_text)
                 flashing = float(flashing_match.group(1)) if flashing_match else 0
-                step_flashing_match = re.search(r'Step\s+[Ff]lashing\s*[=:]\s*([\d.]+)', struct_text, re.IGNORECASE)
+                
+                step_flashing_match = re.search(r'Step\s*flashing\s*[=:]\s*(\d+)', struct_text)
                 step_flashing = float(step_flashing_match.group(1)) if step_flashing_match else 0
-            drip_edge = rakes + eaves
-            # Complexity heuristic
-            pitches_in_section = [p.pitch for p in pitch_breakdown]
-            steep_pitches = [p for p in pitches_in_section if int(p.split('/')[0]) >= 12]
-            if steep_pitches:
-                complexity = "Complex"
-            elif len(set(pitches_in_section)) > 2:
-                complexity = "Normal"
-            else:
-                complexity = "Simple"
+            
             structure = Structure(
                 structure_number=struct_num,
                 total_area_sqft=total_area,
@@ -662,13 +616,14 @@ class EagleViewParser:
                 eaves_ft=eaves,
                 flashing_ft=flashing,
                 step_flashing_ft=step_flashing,
-                drip_edge_ft=drip_edge,
+                drip_edge_ft=rakes + eaves,
                 pitch_breakdown=pitch_breakdown,
                 waste_calculations=waste_calcs,
                 suggested_waste=suggested_waste,
                 complexity=complexity
             )
             structures.append(structure)
+        
         return structures
     
     def parse_windows_doors(self) -> List[WindowDoor]:

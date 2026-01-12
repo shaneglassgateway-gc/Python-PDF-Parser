@@ -168,7 +168,20 @@ export function getCombinedMeasurements(data: EagleViewParserOutput) {
   
   // Combine measurements from both structures
   const s1Squares = (s1.suggested_waste?.squares ?? data.suggested_waste?.squares ?? 0);
-  const s2Squares = (s2.suggested_waste?.squares ?? 0);
+  let s2Squares = (s2.suggested_waste?.squares ?? 0);
+  if (!s2Squares || s2Squares <= 0) {
+    const baseSquares = (s2.total_area_sqft || 0) / 100;
+    let wastePct = 12;
+    const pred = (s2.predominant_pitch || '').trim();
+    const steep = /^(\d+)\s*\/\s*12$/.exec(pred);
+    const steepVal = steep ? parseInt(steep[1], 10) : 0;
+    if (baseSquares > 0 && baseSquares < 2) {
+      wastePct = 94;
+    } else if (steepVal >= 10) {
+      wastePct = 18;
+    }
+    s2Squares = baseSquares * (1 + wastePct / 100);
+  }
   return {
     total_area_sqft: s1.total_area_sqft + s2.total_area_sqft,
     ridges_ft: s1.measurements.ridges_ft + s2.measurements.ridges_ft,
