@@ -374,39 +374,39 @@ class EagleViewParser:
             area_values = re.findall(r'(\d+)', waste_section.group(2))
             sq_values = re.findall(r'([\d.]+)', waste_section.group(3))
             
-            # Determine complexity based on roof characteristics
-            # Extract pitches ONLY from the "Areas per Pitch" / "Roof Pitches" section
-            pitch_section = re.search(
-                r'Roof\s+Pitches?\s+([\d/\s]+)\s*Area\s*\(sq\s*ft\)',
-                structure_text,
-                re.IGNORECASE
-            )
-            
-            pitches_in_section = []
-            if pitch_section:
-                pitches_in_section = re.findall(r'(\d+)/12', pitch_section.group(1))
-            
-            steep_pitches = [int(p) for p in pitches_in_section if int(p) >= 12]
-            has_steep = len(steep_pitches) > 0
-            has_multiple_pitches = len(set(pitches_in_section)) > 1
-            
-            # Determine suggested index based on complexity
-            # Simple: index 3 (typically 7-10%)
-            # Normal: index 4-5 (typically 10-15%)  
-            # Complex: index 6-7 (typically 20-30%+)
-            if has_steep or (has_multiple_pitches and any(int(p) > 8 for p in pitches_in_section)):
-                # Complex structure
-                suggested_idx = 6
-            elif has_multiple_pitches:
-                # Normal complexity
-                suggested_idx = 4
-            else:
-                # Simple structure
-                suggested_idx = 3
-            
-            # Ensure index is within bounds
-            suggested_idx = min(suggested_idx, len(pct_values) - 1)
-            suggested_pct = int(pct_values[suggested_idx]) if pct_values else None
+            # Detect explicit "Suggested" label anywhere within this structure section
+            inline_match = re.search(r'(\d+)%[^\n]{0,200}?Suggested', structure_text, re.IGNORECASE)
+            if not inline_match:
+                inline_match = re.search(r'Suggested[^\n]{0,200}?(\d+)%', structure_text, re.IGNORECASE)
+            suggested_pct = None
+            if inline_match:
+                try:
+                    suggested_pct = int(inline_match.group(1))
+                except Exception:
+                    suggested_pct = None
+            if suggested_pct is None:
+                pitch_section = re.search(
+                    r'Roof\s+Pitches?\s+([\d/\s]+)\s*Area\s*\(sq\s*ft\)',
+                    structure_text,
+                    re.IGNORECASE
+                )
+                pitches_in_section = []
+                if pitch_section:
+                    pitches_in_section = re.findall(r'(\d+)/12', pitch_section.group(1))
+                steep_pitches = [int(p) for p in pitches_in_section if int(p) >= 12]
+                has_steep = len(steep_pitches) > 0
+                has_multiple_pitches = len(set(pitches_in_section)) > 1
+                if has_steep:
+                    suggested_idx = 6
+                elif has_multiple_pitches:
+                    suggested_idx = 4
+                else:
+                    suggested_idx = 3
+                suggested_idx = min(suggested_idx, len(pct_values) - 1) if pct_values else 0
+                try:
+                    suggested_pct = int(pct_values[suggested_idx]) if pct_values else None
+                except Exception:
+                    suggested_pct = None
             
             for i, pct in enumerate(pct_values):
                 if i < len(area_values) and i < len(sq_values):
