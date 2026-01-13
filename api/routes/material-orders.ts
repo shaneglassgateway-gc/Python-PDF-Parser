@@ -94,4 +94,31 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 })
 
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No authorization header' })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid token' })
+    }
+    const { id } = req.params
+    const { data, error } = await supabase
+      .from('material_orders')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+    if (error) throw error
+    if (!data) return res.status(404).json({ error: 'Material order not found' })
+    res.json({ materialOrder: data })
+  } catch (error) {
+    console.error('Error fetching material order:', error)
+    res.status(500).json({ error: 'Failed to fetch material order' })
+  }
+})
+
 export default router

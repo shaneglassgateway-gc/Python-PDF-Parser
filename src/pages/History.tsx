@@ -409,7 +409,7 @@ export default function History() {
                     </div>
                     <div className="mt-4 lg:mt-0 flex items-center space-x-2">
                       <button
-                        onClick={() => navigate('/material-order')}
+                        onClick={() => navigate(`/material-order/${order.id}`)}
                         className="flex items-center px-3 py-2 text-sm bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
                       >
                         <Eye className="h-4 w-4 mr-1" />
