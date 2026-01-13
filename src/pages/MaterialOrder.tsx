@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { UploadCloud, CheckCircle, AlertCircle, Printer, Download } from 'lucide-react'
 import jsPDF from 'jspdf'
 import { supabase } from '../lib/supabase'
@@ -9,6 +9,7 @@ import { calculateMaterialQuantities, applyMaterialPrices, MaterialItem, Materia
 
 export default function MaterialOrder() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -28,6 +29,7 @@ export default function MaterialOrder() {
   const [estimatorEmail, setEstimatorEmail] = useState('')
   const [qtyOverrides, setQtyOverrides] = useState<Record<string, number>>({})
   const [ridgeVentEnabled, setRidgeVentEnabled] = useState(false)
+  const [loadedOrder, setLoadedOrder] = useState(false)
   const [accessories, setAccessories] = useState({
     turtleVentsEnabled: false,
     turtleVentsQty: 0,
@@ -140,6 +142,66 @@ export default function MaterialOrder() {
       setRules(mapped)
     }).catch(()=>{})
   }, [])
+
+  useEffect(() => {
+    const loadExistingOrder = async () => {
+      if (!id) return
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const resp = await fetch(`${apiBase()}/api/material-orders/${id}`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+        if (!resp.ok) return
+        const result = await resp.json()
+        const order = result.materialOrder
+        if (!order) return
+        setPoName(order.po_name || '')
+        setPoAddress(order.address || '')
+        setEstimatorName(order.estimator_name || '')
+        setEstimatorEmail(order.estimator_email || '')
+        // populate colors from saved items
+        const colorMap: Record<string, string> = {}
+        (order.items || []).forEach((it: any) => {
+          if (it.color) colorMap[it.id] = it.color
+        })
+        setColors(colorMap)
+        // populate materials directly, preserving prices and totals
+        setMaterials((order.items || []).map((it: any) => ({
+          id: it.id,
+          itemName: it.itemName,
+          unitOfMeasure: it.unitOfMeasure,
+          quantity: it.quantity,
+          pricePerUnit: it.pricePerUnit,
+          totalCost: it.totalCost,
+          category: undefined
+        })))
+        // populate accessory quantities from items
+        const acc = { ...accessories }
+        const findItem = (pid: string) => (order.items || []).find((x: any) => String(x.id).startsWith(pid))
+        const tv = findItem('accessory-turtleVents')
+        if (tv) { acc.turtleVentsEnabled = true; acc.turtleVentsQty = tv.quantity || 0 }
+        const bf = findItem('accessory-baseFlashing')
+        if (bf) { acc.baseFlashingEnabled = true; acc.baseFlashingQty = bf.quantity || 0 }
+        const ck = findItem('accessory-chimneyKit')
+        if (ck) { acc.chimneyKitEnabled = true; acc.chimneyKitQty = ck.quantity || 0 }
+        const mc = findItem('accessory-multicap')
+        if (mc) { acc.multicapEnabled = true; acc.multicapQty = mc.quantity || 0 }
+        const leadSizes = Object.keys(acc.leadBootQty) as Array<keyof typeof acc.leadBootQty>
+        leadSizes.forEach(sz => {
+          const specLabel = (LEAD_BOOT_SPECS[sz]?.label || sz)
+          const li = findItem(`accessory-leadBoots-${specLabel}`)
+          acc.leadBootQty[sz] = li ? (li.quantity || 0) : 0
+        })
+        setAccessories(acc)
+        // ensure UI shows the editing section
+        setData({ property: { address: order.address || '' }, structures: [] })
+        setSuccess(true)
+        setLoadedOrder(true)
+      } catch {}
+    }
+    loadExistingOrder()
+  }, [id])
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -387,7 +449,7 @@ export default function MaterialOrder() {
     })
   }
 
-  useEffect(() => { if (data) compute() }, [data, includeDetached, rules, prices, accessories, qtyOverrides, ridgeVentEnabled])
+  useEffect(() => { if (data && !loadedOrder) compute() }, [data, includeDetached, rules, prices, accessories, qtyOverrides, ridgeVentEnabled, loadedOrder])
   useEffect(() => {
     if (data) {
       const addr = (data as any)?.property?.address || ''
@@ -481,7 +543,7 @@ export default function MaterialOrder() {
   }
 
   const onDownload = () => {
-    window.print()
+    generatePdf()
   }
   const generatePdf = async () => {
     const pdf = new jsPDF('p', 'pt', 'a4')

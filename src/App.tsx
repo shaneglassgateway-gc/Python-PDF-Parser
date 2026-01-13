@@ -5,7 +5,6 @@ import { User } from "@supabase/supabase-js"
 import Login from "./pages/Login"
 import Upload from "./pages/Upload"
 import MaterialOrder from "./pages/MaterialOrder"
-import MaterialOrderView from "./pages/MaterialOrderView"
 import Profile from "./pages/Profile"
 import Estimate from "./pages/Estimate"
 import History from "./pages/History"
@@ -72,7 +71,7 @@ function App() {
           />
           <Route
             path="/material-order/:id"
-            element={user ? <MaterialOrderView /> : <Navigate to="/login" replace />}
+            element={user && (user as any)?.user_metadata?.role === 'admin' ? <MaterialOrder /> : <Navigate to="/history" replace />}
           />
           <Route 
             path="/" 
