@@ -548,7 +548,47 @@ export default function MaterialOrder() {
   const onDownload = () => {
     generatePdf()
   }
+  const saveOrder = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const total_cost = materials.reduce((sum, it) => sum + ((qtyOverrides[it.id] ?? it.quantity) * (it.pricePerUnit || 0)), 0)
+      const payload = {
+        po_name: poName,
+        address: poAddress,
+        estimator_name: estimatorName,
+        estimator_email: estimatorEmail,
+        items: materials.map(it => ({
+          id: it.id,
+          itemName: it.itemName,
+          unitOfMeasure: it.unitOfMeasure,
+          quantity: qtyOverrides[it.id] ?? it.quantity,
+          pricePerUnit: it.pricePerUnit,
+          totalCost: (qtyOverrides[it.id] ?? it.quantity) * (it.pricePerUnit || 0),
+          color: needsColor(it.itemName) ? (isChimneyKit(it.itemName) || isCaulkTube(it.itemName) ? defaultColorFor(it.itemName) : (colors[it.id] ?? defaultColorFor(it.itemName))) : null,
+        })),
+        total_cost
+      }
+      const url = id ? `${apiBase()}/api/material-orders/${id}` : `${apiBase()}/api/material-orders`
+      const method = id ? 'PATCH' : 'POST'
+      const resp = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(payload)
+      })
+      if (!resp.ok) throw new Error('Failed to save material order')
+      const result = await resp.json()
+      const saved = result.materialOrder
+      if (!id && saved?.id) {
+        navigate(`/material-order/${saved.id}`, { replace: true })
+      }
+    } catch {}
+  }
   const generatePdf = async () => {
+    await saveOrder()
     const pdf = new jsPDF('p', 'pt', 'a4')
     const marginLeft = 40
     const marginTop = 40
@@ -667,36 +707,6 @@ export default function MaterialOrder() {
       pdf.line(marginLeft, rowTop + rowH, marginLeft + availableWidth, rowTop + rowH)
       return rowH
     }
-    // Save material order to history
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        const total_cost = materials.reduce((sum, it) => sum + ((qtyOverrides[it.id] ?? it.quantity) * (it.pricePerUnit || 0)), 0)
-        await fetch(`${apiBase()}/api/material-orders`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({
-            po_name: poName,
-            address: poAddress,
-            estimator_name: estimatorName,
-            estimator_email: estimatorEmail,
-            items: materials.map(it => ({
-              id: it.id,
-              itemName: it.itemName,
-              unitOfMeasure: it.unitOfMeasure,
-              quantity: qtyOverrides[it.id] ?? it.quantity,
-              pricePerUnit: it.pricePerUnit,
-              totalCost: (qtyOverrides[it.id] ?? it.quantity) * (it.pricePerUnit || 0),
-              color: needsColor(it.itemName) ? (isChimneyKit(it.itemName) || isCaulkTube(it.itemName) ? defaultColorFor(it.itemName) : (colors[it.id] ?? defaultColorFor(it.itemName))) : null,
-            })),
-            total_cost
-          })
-        })
-      }
-    } catch {}
     drawHeader()
     let y = tableStartY
     for (const item of materials) {
@@ -802,6 +812,9 @@ export default function MaterialOrder() {
                   <span>Include Detached Structure</span>
                 </label>
                 <div className="flex space-x-2">
+                  <button onClick={saveOrder} className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center">
+                    Save
+                  </button>
                   <button onClick={onPrint} className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
                     <Printer className="h-4 w-4 mr-2" />
                     Print

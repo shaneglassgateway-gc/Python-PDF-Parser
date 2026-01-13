@@ -121,4 +121,42 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 })
 
+router.patch('/:id', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No authorization header' })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid token' })
+    }
+    const { id } = req.params
+    const now = new Date().toISOString()
+    const payload = {
+      po_name: req.body.po_name ?? undefined,
+      address: req.body.address ?? undefined,
+      estimator_name: req.body.estimator_name ?? undefined,
+      estimator_email: req.body.estimator_email ?? undefined,
+      items: req.body.items ?? undefined,
+      total_cost: req.body.total_cost ?? undefined,
+      status: req.body.status ?? undefined,
+      updated_at: now
+    }
+    const { data, error } = await supabase
+      .from('material_orders')
+      .update(payload)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+    if (error) throw error
+    res.json({ materialOrder: data })
+  } catch (error) {
+    console.error('Error updating material order:', error)
+    res.status(500).json({ error: 'Failed to update material order' })
+  }
+})
+
 export default router
