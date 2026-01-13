@@ -161,14 +161,16 @@ export default function MaterialOrder() {
         setPoAddress(order.address || '')
         setEstimatorName(order.estimator_name || '')
         setEstimatorEmail(order.estimator_email || '')
+        // normalize items array
+        const itemsArr: any[] = Array.isArray(order.items) ? order.items : []
         // populate colors from saved items
         const colorMap: Record<string, string> = {}
-        (order.items || []).forEach((it: any) => {
+        itemsArr.forEach((it: any) => {
           if (it.color) colorMap[it.id] = it.color
         })
         setColors(colorMap)
         // populate materials directly, preserving prices and totals
-        setMaterials((order.items || []).map((it: any) => ({
+        setMaterials(itemsArr.map((it: any) => ({
           id: it.id,
           itemName: it.itemName,
           unitOfMeasure: it.unitOfMeasure,
@@ -179,7 +181,7 @@ export default function MaterialOrder() {
         })))
         // populate accessory quantities from items
         const acc = { ...accessories }
-        const findItem = (pid: string) => (order.items || []).find((x: any) => String(x.id).startsWith(pid))
+        const findItem = (pid: string) => itemsArr.find((x: any) => String(x.id).startsWith(pid))
         const tv = findItem('accessory-turtleVents')
         if (tv) { acc.turtleVentsEnabled = true; acc.turtleVentsQty = tv.quantity || 0 }
         const bf = findItem('accessory-baseFlashing')
