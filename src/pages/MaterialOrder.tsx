@@ -9,7 +9,8 @@ import { calculateMaterialQuantities, applyMaterialPrices, MaterialItem, Materia
 
 export default function MaterialOrder() {
   const navigate = useNavigate()
-  const { id } = useParams<{ id: string }>()
+  const params = useParams()
+  const id = params.id
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
   const [uploading, setUploading] = useState(false)
