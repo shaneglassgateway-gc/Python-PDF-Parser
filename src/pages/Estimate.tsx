@@ -75,6 +75,7 @@ export default function Estimate() {
     totalCost: 0,
     profitMargin: 0.40
   })
+  const financedTag = '[financed]'
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
@@ -211,7 +212,9 @@ export default function Estimate() {
       // Calculate total costs
       const x = 0.86 - contributionPct
       const totals = calculateTotalCosts(materialsWithPrices, labor, x)
-      setTotalCosts(totals)
+      const isFinanced = String(estimate.notes || '').toLowerCase().includes('financed')
+      const totalsWithFee = isFinanced ? { ...totals, totalCost: totals.totalCost + 500 } : totals
+      setTotalCosts(totalsWithFee)
 
       // Update estimate with calculated costs
       const updatedEstimate = {
@@ -220,7 +223,7 @@ export default function Estimate() {
         labor_costs: labor,
         total_material_cost: totals.totalMaterialCost,
         total_labor_cost: totals.totalLaborCost,
-        total_cost: totals.totalCost,
+        total_cost: totalsWithFee.totalCost,
         profit_margin: contributionPct
       }
 
@@ -451,7 +454,7 @@ export default function Estimate() {
               <Calculator className="h-5 w-5 text-green-600 mr-2" />
               <h2 className="text-lg font-semibold text-gray-900">Cost Summary</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className={`grid grid-cols-1 ${String(estimate?.notes || '').toLowerCase().includes('financed') ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-6`}>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Materials</p>
                 <p className="text-2xl font-bold text-gray-900">
@@ -464,6 +467,12 @@ export default function Estimate() {
                   ${totalCosts.totalLaborCost.toFixed(2)}
                 </p>
               </div>
+                {String(estimate?.notes || '').toLowerCase().includes('financed') && (
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-1">Loan Origination Fee</p>
+                    <p className="text-2xl font-bold text-gray-900">$500.00</p>
+                  </div>
+                )}
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Total with Contribution</p>
                 <p className="text-3xl font-bold text-green-600">

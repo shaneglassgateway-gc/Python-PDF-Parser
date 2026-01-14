@@ -29,6 +29,7 @@ export default function Upload() {
     projectType: 'residential',
     notes: ''
   })
+  const [financed, setFinanced] = useState(false)
   const [options, setOptions] = useState({
     noTrailerAccess: false,
     ridgeVent: false,
@@ -249,7 +250,7 @@ export default function Upload() {
         customer_name: jobDetails.customerName,
         customer_address: jobDetails.customerAddress,
         project_type: jobDetails.projectType,
-        notes: jobDetails.notes,
+        notes: financed ? `${jobDetails.notes || ''} [Financed]`.trim() : jobDetails.notes,
         eagleview_data: eagleViewData,
         roof_measurements: roofMeasurements,
         accessories: [
@@ -405,6 +406,17 @@ export default function Upload() {
                       <option value="multi-family">Multi-Family</option>
                       <option value="other">Other</option>
                     </select>
+                  </div>
+                  <div className="flex items-center mt-1">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={financed}
+                        onChange={(e)=>setFinanced(e.target.checked)}
+                        disabled={parsing}
+                      />
+                      <span>Financed</span>
+                    </label>
                   </div>
                 </div>
                 
