@@ -207,7 +207,7 @@ class EagleViewParser:
         drip_edge_match = re.search(r'Drip\s+Edge\s*\([^)]*\)\s*=\s*([\d,]+(?:\.\d+)?)\s*ft', self.text_content)
         if drip_edge_match:
             drip_edge = float(drip_edge_match.group(1).replace(",", ""))
-        else:
+        elif False:
             # Calculate from eaves + rakes if not explicitly stated
             drip_edge = (eaves or 0) + (rakes or 0) if (eaves or rakes) else 0
         
@@ -423,14 +423,34 @@ class EagleViewParser:
                 import pdfplumber as _pp
                 from PIL import Image
                 import pytesseract, os
-                # Allow configuration of tesseract binary via env
                 tess_cmd = os.environ.get('TESSERACT_CMD') or os.environ.get('TESSERACT_PATH')
+                if not tess_cmd:
+                    default_tess = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+                    if os.path.exists(default_tess):
+                        tess_cmd = default_tess
+                if not tess_cmd:
+                    for p in ("/usr/bin/tesseract", "/usr/local/bin/tesseract", "/bin/tesseract"):
+                        if os.path.exists(p):
+                            tess_cmd = p
+                            break
                 if tess_cmd:
                     try:
                         pytesseract.pytesseract.tesseract_cmd = tess_cmd
                     except Exception:
                         pass
-                tessdata_prefix = os.environ.get('TESSDATA_PREFIX')
+                if not os.environ.get('TESSDATA_PREFIX'):
+                    default_tessdata = r"C:\Program Files\Tesseract-OCR\tessdata"
+                    if os.path.exists(default_tessdata):
+                        os.environ['TESSDATA_PREFIX'] = default_tessdata
+                    else:
+                        for d in (
+                            "/usr/share/tesseract-ocr/5/tessdata",
+                            "/usr/share/tesseract-ocr/4.00/tessdata",
+                            "/usr/share/tesseract-ocr/tessdata",
+                        ):
+                            if os.path.exists(d):
+                                os.environ['TESSDATA_PREFIX'] = d
+                                break
                 page_index = None
                 for idx, ptxt in enumerate(self.pages_text):
                     if re.search(rf'\bStructure[\s:#\-]*{struct_num}\b', ptxt, re.IGNORECASE):
