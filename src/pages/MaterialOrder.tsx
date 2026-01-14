@@ -4,7 +4,7 @@ import { UploadCloud, CheckCircle, AlertCircle, Printer, Download } from 'lucide
 import jsPDF from 'jspdf'
 import { supabase } from '../lib/supabase'
 import { apiBase } from '../lib/utils'
-import { getStructure1Measurements, getCombinedMeasurements } from '../../eagleview-types'
+import { getStructure1Measurements, getSelectedMeasurements } from '../../eagleview-types'
 import { calculateMaterialQuantities, applyMaterialPrices, MaterialItem, MaterialOrderRule } from '../utils/calculations'
 
 export default function MaterialOrder() {
@@ -18,7 +18,8 @@ export default function MaterialOrder() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [data, setData] = useState<any | null>(null)
-  const [includeDetached, setIncludeDetached] = useState(false)
+  const [includeStructure2, setIncludeStructure2] = useState(false)
+  const [includeStructure3, setIncludeStructure3] = useState(false)
   const [materials, setMaterials] = useState<MaterialItem[]>([])
   const [prices, setPrices] = useState<any[]>([])
   const [rules, setRules] = useState<MaterialOrderRule[]>([])
@@ -266,7 +267,7 @@ export default function MaterialOrder() {
     try {
       const parsed = data || {}
       const hasStructs = Array.isArray((parsed as any)?.structures) && (parsed as any).structures.length > 0
-      const measRaw = includeDetached && hasStructs ? getCombinedMeasurements(parsed) : getStructure1Measurements(parsed)
+      const measRaw = hasStructs ? getSelectedMeasurements(parsed, includeStructure2, includeStructure3) : getStructure1Measurements(parsed)
       if (!measRaw) {
         const roof = (parsed as any)?.roof_measurements || {}
         return {
@@ -452,7 +453,7 @@ export default function MaterialOrder() {
     })
   }
 
-  useEffect(() => { if (data && !loadedOrder) compute() }, [data, includeDetached, rules, prices, accessories, qtyOverrides, ridgeVentEnabled, loadedOrder])
+  useEffect(() => { if (data && !loadedOrder) compute() }, [data, includeStructure2, includeStructure3, rules, prices, accessories, qtyOverrides, ridgeVentEnabled, loadedOrder])
   useEffect(() => {
     if (data) {
       const addr = (data as any)?.property?.address || ''
@@ -807,10 +808,22 @@ export default function MaterialOrder() {
           {data && (
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <label className="flex items-center space-x-2">
-                  <input type="checkbox" checked={includeDetached} onChange={(e)=>setIncludeDetached(e.target.checked)} />
-                  <span>Include Detached Structure</span>
-                </label>
+                <div className="flex items-center space-x-4">
+                  {Array.isArray((data as any)?.structures) && (data as any).structures.length > 1 && (
+                    <>
+                      <label className="flex items-center space-x-2">
+                        <input type="checkbox" checked={includeStructure2} onChange={(e)=>setIncludeStructure2(e.target.checked)} />
+                        <span>Include Structure 2</span>
+                      </label>
+                      {(data as any).structures.length > 2 && (
+                        <label className="flex items-center space-x-2">
+                          <input type="checkbox" checked={includeStructure3} onChange={(e)=>setIncludeStructure3(e.target.checked)} />
+                          <span>Include Structure 3</span>
+                        </label>
+                      )}
+                    </>
+                  )}
+                </div>
                 <div className="flex space-x-2">
                   <button onClick={saveOrder} className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center">
                     Save

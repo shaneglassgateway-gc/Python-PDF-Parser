@@ -110,6 +110,12 @@ export function getStructure2(data: EagleViewParserOutput): EagleViewStructure |
   }
   return null;
 }
+export function getStructure3(data: EagleViewParserOutput): EagleViewStructure | null {
+  if (data.structures && data.structures.length > 2) {
+    return data.structures.find(s => s.structure_number === 3) || data.structures[2];
+  }
+  return null;
+}
 
 /**
  * Get roof measurements for Structure 1 only
@@ -197,6 +203,62 @@ export function getCombinedMeasurements(data: EagleViewParserOutput) {
     predominant_pitch: s1.predominant_pitch,  // Use main structure's pitch
     suggested_squares: s1Rounded + s2Rounded,
     pitch_breakdown: mergePitchBreakdowns(s1.pitch_breakdown, s2.pitch_breakdown)
+  };
+}
+
+export function getSelectedMeasurements(data: EagleViewParserOutput, include2: boolean, include3: boolean) {
+  const s1 = getStructure1(data);
+  if (!s1) return getStructure1Measurements(data);
+  const structs: EagleViewStructure[] = [s1];
+  if (include2) {
+    const s2 = getStructure2(data);
+    if (s2) structs.push(s2);
+  }
+  if (include3) {
+    const s3 = getStructure3(data);
+    if (s3) structs.push(s3);
+  }
+  if (structs.length === 1) return getStructure1Measurements(data);
+  const sumSquares = (s: EagleViewStructure) => {
+    let sq = s.suggested_waste?.squares ?? 0;
+    if (!sq || sq <= 0) {
+      const base = (s.total_area_sqft || 0) / 100;
+      let waste = 12;
+      const pred = (s.predominant_pitch || '').trim();
+      const steep = /^(\d+)\s*\/\s*12$/.exec(pred);
+      const steepVal = steep ? parseInt(steep[1], 10) : 0;
+      if (base > 0 && base < 2) {
+        waste = 94;
+      } else if (steepVal >= 10) {
+        waste = 18;
+      }
+      sq = base * (1 + waste / 100);
+    }
+    return Math.ceil(sq || 0);
+  };
+  const totalArea = structs.reduce((a, s) => a + (s.total_area_sqft || 0), 0);
+  const ridges = structs.reduce((a, s) => a + (s.measurements.ridges_ft || 0), 0);
+  const hips = structs.reduce((a, s) => a + (s.measurements.hips_ft || 0), 0);
+  const valleys = structs.reduce((a, s) => a + (s.measurements.valleys_ft || 0), 0);
+  const rakes = structs.reduce((a, s) => a + (s.measurements.rakes_ft || 0), 0);
+  const eaves = structs.reduce((a, s) => a + (s.measurements.eaves_ft || 0), 0);
+  const flashing = structs.reduce((a, s) => a + (s.measurements.flashing_ft || 0), 0);
+  const stepFlashing = structs.reduce((a, s) => a + (s.measurements.step_flashing_ft || 0), 0);
+  const dripEdge = structs.reduce((a, s) => a + (s.measurements.drip_edge_ft || 0), 0);
+  const pitches = mergePitchBreakdowns(structs[0].pitch_breakdown, structs.slice(1).reduce((acc, st) => mergePitchBreakdowns(acc, st.pitch_breakdown), [] as EagleViewPitch[]));
+  return {
+    total_area_sqft: totalArea,
+    ridges_ft: ridges,
+    hips_ft: hips,
+    valleys_ft: valleys,
+    rakes_ft: rakes,
+    eaves_ft: eaves,
+    flashing_ft: flashing,
+    step_flashing_ft: stepFlashing,
+    drip_edge_ft: dripEdge,
+    predominant_pitch: structs[0].predominant_pitch,
+    suggested_squares: structs.reduce((a, s) => a + sumSquares(s), 0),
+    pitch_breakdown: pitches
   };
 }
 

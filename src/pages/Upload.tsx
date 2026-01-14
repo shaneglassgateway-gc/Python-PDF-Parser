@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UploadCloud, FileText, AlertCircle, CheckCircle } from 'lucide-react'
-import { getStructure1Measurements, getCombinedMeasurements } from '../../eagleview-types'
+import { getStructure1Measurements, getCombinedMeasurements, getSelectedMeasurements } from '../../eagleview-types'
 import { supabase } from '../lib/supabase'
 import { apiBase } from '../lib/utils'
 
@@ -36,7 +36,8 @@ export default function Upload() {
     secondLayer: false,
     handLoadMaterials: false,
   })
-  const [includeDetachedStructure, setIncludeDetachedStructure] = useState(false)
+  const [includeStructure2, setIncludeStructure2] = useState(false)
+  const [includeStructure3, setIncludeStructure3] = useState(false)
   const [accessories, setAccessories] = useState({
     leadBootsQty: 0,
     pvcBootsQty: 0,
@@ -216,7 +217,11 @@ export default function Upload() {
       }
       
       // Create estimate data
-      const meas = includeDetachedStructure ? getCombinedMeasurements(eagleViewData) : getStructure1Measurements(eagleViewData)
+      const parsedOut = eagleViewData as any
+      const hasStructs = Array.isArray(parsedOut?.structures) && parsedOut.structures.length > 0
+      const meas = hasStructs
+        ? getSelectedMeasurements(parsedOut, includeStructure2, includeStructure3)
+        : getStructure1Measurements(parsedOut)
       const totalSq = ((meas?.total_area_sqft || 0) / 100) || 0
       const suggested = Number(meas?.suggested_squares ?? 0)
       const roofMeasurements = {
@@ -448,12 +453,28 @@ export default function Upload() {
                 {/* Roofing Accessories */}
                 <div className="col-span-1 md:col-span-2">
                   <h3 className="text-md font-semibold text-gray-900 mb-2">Roofing Accessories</h3>
-                  <div className="mb-3">
-                    <label className="flex items-center space-x-2">
-                      <input type="checkbox" checked={includeDetachedStructure} onChange={(e)=>setIncludeDetachedStructure(e.target.checked)} />
-                      <span>Include Detached Structure</span>
-                    </label>
-                  </div>
+                  {Array.isArray((eagleViewData as any)?.structures) && (eagleViewData as any).structures.length > 1 && (
+                    <div className="mb-3 space-y-1">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={includeStructure2}
+                          onChange={(e)=>setIncludeStructure2(e.target.checked)}
+                        />
+                        <span>Include Structure 2</span>
+                      </label>
+                      {(eagleViewData as any).structures.length > 2 && (
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={includeStructure3}
+                            onChange={(e)=>setIncludeStructure3(e.target.checked)}
+                          />
+                          <span>Include Structure 3</span>
+                        </label>
+                      )}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex items-center justify-between border rounded-md p-3">
                       <span>Lead Pipe Boots</span>
