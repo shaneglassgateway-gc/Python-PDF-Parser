@@ -368,38 +368,85 @@ class EagleViewParser:
             structure_text,
             re.IGNORECASE
         )
+        table_full = re.search(
+            r'Waste\s*%\s*[\s\S]*?Squares[\s\S]*?(?=Roof\s+Pitches|Structure\s+\d+|All\s+Structures|REPORT|PAGE|\Z)',
+            structure_text,
+            re.IGNORECASE
+        )
         
         if waste_section:
             pct_values = re.findall(r'(\d+)%?', waste_section.group(1))
             area_values = re.findall(r'(\d+)', waste_section.group(2))
             sq_values = re.findall(r'([\d.]+)', waste_section.group(3))
-            
-            # Determine suggested index based on structure complexity (from UPDATEDevParser)
-            pitch_section = re.search(
-                r'Roof\s+Pitches?\s+([\d/\s]+)\s*Area\s*\(sq\s*ft\)',
-                structure_text,
-                re.IGNORECASE
-            )
-            pitches_in_section = []
-            if pitch_section:
-                pitches_in_section = re.findall(r'(\d+)/12', pitch_section.group(1))
-            steep_pitches = [int(p) for p in pitches_in_section if int(p) >= 12]
-            has_steep = len(steep_pitches) > 0
-            num_unique_pitches = len(set(pitches_in_section))
-            has_high_pitch = any(int(p) >= 10 for p in pitches_in_section)
-            if has_steep:
-                suggested_idx = 6
-            elif num_unique_pitches >= 3 or (num_unique_pitches >= 2 and has_high_pitch):
-                suggested_idx = 5
-            elif num_unique_pitches == 2:
-                suggested_idx = 5
-            else:
-                suggested_idx = 3
-            # Very high waste percentages (small structures): last column
-            if pct_values and int(pct_values[-1]) > 50:
-                suggested_idx = len(pct_values) - 1
-            suggested_idx = min(suggested_idx, len(pct_values) - 1) if pct_values else 0
-            suggested_pct = int(pct_values[suggested_idx]) if pct_values else None
+            table_text = (table_full.group(0) if table_full else waste_section.group(0))
+            suggested_pct = None
+            sug_label = re.search(r'Suggested', table_text, re.IGNORECASE)
+            if sug_label:
+                try:
+                    sug_pos = sug_label.start()
+                    percent_tokens = list(re.finditer(r'(\d+)\s*%', table_text))
+                    if percent_tokens:
+                        nearest = min(percent_tokens, key=lambda m: abs(m.start() - sug_pos))
+                        suggested_pct = int(nearest.group(1))
+                except Exception:
+                    suggested_pct = None
+            if suggested_pct is None:
+                # Try positional detection using page words to anchor Suggested to a percent column
+                page_index = None
+                for idx, ptxt in enumerate(self.pages_text):
+                    if re.search(rf'\bStructure[\s:#\-]*{struct_num}\b', ptxt, re.IGNORECASE):
+                        page_index = idx
+                        break
+                if page_index is not None:
+                    try:
+                        import pdfplumber as _pp
+                        with _pp.open(self.pdf_path) as pdf:
+                            page = pdf.pages[page_index]
+                            words = page.extract_words()
+                            sug_words = [w for w in words if re.search(r'suggested', w.get('text',''), re.IGNORECASE)]
+                            if sug_words:
+                                w = sug_words[-1]
+                                # search above Suggested for a percent token near same column
+                                candidates = []
+                                for i in range(len(words)):
+                                    t = words[i].get('text','')
+                                    if re.fullmatch(r'\d{1,2}', t):
+                                        # check for % token nearby
+                                        neigh = words[i+1].get('text','') if i+1 < len(words) else ''
+                                        if neigh.strip() == '%':
+                                            # within horizontal proximity and above
+                                            if abs(((words[i]['x0'] + words[i]['x1'])/2) - ((w['x0'] + w['x1'])/2)) < 50 and words[i]['top'] < w['top'] and (w['top'] - words[i]['top']) < 200:
+                                                candidates.append((int(t), w['top'] - words[i]['top'], abs(((words[i]['x0'] + words[i]['x1'])/2) - ((w['x0'] + w['x1'])/2))))
+                                if candidates:
+                                    candidates.sort(key=lambda x: (x[1], x[2]))
+                                    suggested_pct = candidates[0][0]
+                    except Exception:
+                        pass
+            if suggested_pct is None:
+                pitch_section = re.search(
+                    r'Roof\s+Pitches?\s+([\d/\s]+)\s*Area\s*\(sq\s*ft\)',
+                    structure_text,
+                    re.IGNORECASE
+                )
+                pitches_in_section = []
+                if pitch_section:
+                    pitches_in_section = re.findall(r'(\d+)/12', pitch_section.group(1))
+                steep_pitches = [int(p) for p in pitches_in_section if int(p) >= 12]
+                has_steep = len(steep_pitches) > 0
+                num_unique_pitches = len(set(pitches_in_section))
+                has_high_pitch = any(int(p) >= 10 for p in pitches_in_section)
+                if has_steep:
+                    suggested_idx = 6
+                elif num_unique_pitches >= 3 or (num_unique_pitches >= 2 and has_high_pitch):
+                    suggested_idx = 5
+                elif num_unique_pitches == 2:
+                    suggested_idx = 5
+                else:
+                    suggested_idx = 3
+                if pct_values and int(pct_values[-1]) > 50:
+                    suggested_idx = len(pct_values) - 1
+                suggested_idx = min(suggested_idx, len(pct_values) - 1) if pct_values else 0
+                suggested_pct = int(pct_values[suggested_idx]) if pct_values else None
             
             for i, pct in enumerate(pct_values):
                 if i < len(area_values) and i < len(sq_values):

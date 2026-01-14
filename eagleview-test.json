@@ -1,0 +1,512 @@
+{
+  "property": {
+    "address": "1504 Meadowbrook Ct, Arnold, MO 63010",
+    "latitude": 38.4485869,
+    "longitude": -90.42396
+  },
+  "report_info": {
+    "report_number": "68817304",
+    "report_date": "1/13/2026",
+    "prepared_for_contact": "Josh Gray",
+    "prepared_for_company": "Gateway General"
+  },
+  "roof_measurements": {
+    "total_area_sqft": 3399.0,
+    "total_facets": 24,
+    "predominant_pitch": "7/12",
+    "num_stories": "",
+    "ridges_ft": 110.0,
+    "hips_ft": 96.0,
+    "valleys_ft": 91.0,
+    "rakes_ft": 195.0,
+    "eaves_ft": 216.0,
+    "flashing_ft": 15.0,
+    "step_flashing_ft": 37.0,
+    "drip_edge_ft": 411.0,
+    "estimated_attic_sqft": 2915.0
+  },
+  "wall_measurements": {
+    "total_wall_area_sqft": 2451.7,
+    "total_wall_facets": 23,
+    "total_siding_area_sqft": 1930.9,
+    "total_masonry_area_sqft": 520.8
+  },
+  "pitch_breakdown": [
+    {
+      "pitch": "4/12",
+      "area_sqft": 168.8,
+      "percent_of_roof": 6.0
+    },
+    {
+      "pitch": "5/12",
+      "area_sqft": 28.4,
+      "percent_of_roof": 1.0
+    },
+    {
+      "pitch": "6/12",
+      "area_sqft": 14.0,
+      "percent_of_roof": 0.5
+    },
+    {
+      "pitch": "7/12",
+      "area_sqft": 2586.1,
+      "percent_of_roof": 92.4
+    }
+  ],
+  "suggested_waste": {
+    "waste_percent": 12,
+    "area_sqft": 3134.0,
+    "squares": 31.66,
+    "is_suggested": true
+  },
+  "all_waste_calculations": [
+    {
+      "waste_percent": 0,
+      "area_sqft": 2798.0,
+      "squares": 28.0,
+      "is_suggested": false
+    },
+    {
+      "waste_percent": 2,
+      "area_sqft": 2854.0,
+      "squares": 28.66,
+      "is_suggested": false
+    },
+    {
+      "waste_percent": 7,
+      "area_sqft": 2994.0,
+      "squares": 30.0,
+      "is_suggested": false
+    },
+    {
+      "waste_percent": 10,
+      "area_sqft": 3078.0,
+      "squares": 31.0,
+      "is_suggested": false
+    },
+    {
+      "waste_percent": 12,
+      "area_sqft": 3134.0,
+      "squares": 31.66,
+      "is_suggested": true
+    },
+    {
+      "waste_percent": 14,
+      "area_sqft": 3190.0,
+      "squares": 32.0,
+      "is_suggested": false
+    },
+    {
+      "waste_percent": 17,
+      "area_sqft": 3274.0,
+      "squares": 33.0,
+      "is_suggested": false
+    },
+    {
+      "waste_percent": 22,
+      "area_sqft": 3414.0,
+      "squares": 34.33,
+      "is_suggested": false
+    },
+    {
+      "waste_percent": 27,
+      "area_sqft": 3554.0,
+      "squares": 35.66,
+      "is_suggested": false
+    }
+  ],
+  "windows_doors": [
+    {
+      "label": "D1",
+      "area_sqft": 7.5,
+      "perimeter_ft": 13.0,
+      "width_ft": 1.5,
+      "height_ft": 5.0,
+      "wall_direction": "East"
+    },
+    {
+      "label": "E1",
+      "area_sqft": 7.5,
+      "perimeter_ft": 13.0,
+      "width_ft": 1.5,
+      "height_ft": 5.0,
+      "wall_direction": "East"
+    },
+    {
+      "label": "K1",
+      "area_sqft": 21.0,
+      "perimeter_ft": 20.0,
+      "width_ft": 3.0,
+      "height_ft": 7.0,
+      "wall_direction": "East"
+    },
+    {
+      "label": "Q1",
+      "area_sqft": 10.0,
+      "perimeter_ft": 13.0,
+      "width_ft": 2.5,
+      "height_ft": 4.0,
+      "wall_direction": "East"
+    },
+    {
+      "label": "R1",
+      "area_sqft": 30.3,
+      "perimeter_ft": 22.0,
+      "width_ft": 5.5,
+      "height_ft": 5.5,
+      "wall_direction": "East"
+    },
+    {
+      "label": "S1",
+      "area_sqft": 24.8,
+      "perimeter_ft": 20.0,
+      "width_ft": 5.5,
+      "height_ft": 4.5,
+      "wall_direction": "East"
+    },
+    {
+      "label": "S2",
+      "area_sqft": 2.5,
+      "perimeter_ft": 7.0,
+      "width_ft": 2.5,
+      "height_ft": 1.0,
+      "wall_direction": "East"
+    },
+    {
+      "label": "S3",
+      "area_sqft": 2.5,
+      "perimeter_ft": 7.0,
+      "width_ft": 2.5,
+      "height_ft": 1.0,
+      "wall_direction": "East"
+    },
+    {
+      "label": "W1",
+      "area_sqft": 21.0,
+      "perimeter_ft": 20.0,
+      "width_ft": 3.0,
+      "height_ft": 7.0,
+      "wall_direction": "South"
+    },
+    {
+      "label": "H1",
+      "area_sqft": 30.3,
+      "perimeter_ft": 22.0,
+      "width_ft": 5.5,
+      "height_ft": 5.5,
+      "wall_direction": "West"
+    },
+    {
+      "label": "M1",
+      "area_sqft": 42.0,
+      "perimeter_ft": 26.0,
+      "width_ft": 6.0,
+      "height_ft": 7.0,
+      "wall_direction": "Unknown"
+    },
+    {
+      "label": "T1",
+      "area_sqft": 22.5,
+      "perimeter_ft": 19.0,
+      "width_ft": 4.5,
+      "height_ft": 5.0,
+      "wall_direction": "West"
+    },
+    {
+      "label": "T2",
+      "area_sqft": 21.0,
+      "perimeter_ft": 20.0,
+      "width_ft": 3.0,
+      "height_ft": 7.0,
+      "wall_direction": "West"
+    },
+    {
+      "label": "U1",
+      "area_sqft": 112.7,
+      "perimeter_ft": 46.0,
+      "width_ft": 16.0,
+      "height_ft": 7.0,
+      "wall_direction": "West"
+    }
+  ],
+  "structures": [
+    {
+      "structure_number": 1,
+      "total_area_sqft": 2798.0,
+      "total_facets": 14,
+      "predominant_pitch": "7/12",
+      "complexity": "Normal",
+      "measurements": {
+        "ridges_ft": 98.0,
+        "hips_ft": 18.0,
+        "valleys_ft": 91.0,
+        "rakes_ft": 162.0,
+        "eaves_ft": 122.0,
+        "flashing_ft": 14.0,
+        "step_flashing_ft": 36.0,
+        "drip_edge_ft": 284.0
+      },
+      "pitch_breakdown": [
+        {
+          "pitch": "4/12",
+          "area_sqft": 168.8,
+          "percent_of_roof": 6.0
+        },
+        {
+          "pitch": "5/12",
+          "area_sqft": 28.4,
+          "percent_of_roof": 1.0
+        },
+        {
+          "pitch": "6/12",
+          "area_sqft": 14.0,
+          "percent_of_roof": 0.5
+        },
+        {
+          "pitch": "7/12",
+          "area_sqft": 2586.1,
+          "percent_of_roof": 92.4
+        }
+      ],
+      "suggested_waste": {
+        "waste_percent": 27,
+        "area_sqft": 3554.0,
+        "squares": 35.66,
+        "is_suggested": true
+      },
+      "all_waste_calculations": [
+        {
+          "waste_percent": 0,
+          "area_sqft": 2798.0,
+          "squares": 28.0,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 2,
+          "area_sqft": 2854.0,
+          "squares": 28.66,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 7,
+          "area_sqft": 2994.0,
+          "squares": 30.0,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 10,
+          "area_sqft": 3078.0,
+          "squares": 31.0,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 12,
+          "area_sqft": 3134.0,
+          "squares": 31.66,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 14,
+          "area_sqft": 3190.0,
+          "squares": 32.0,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 17,
+          "area_sqft": 3274.0,
+          "squares": 33.0,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 22,
+          "area_sqft": 3414.0,
+          "squares": 34.33,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 27,
+          "area_sqft": 3554.0,
+          "squares": 35.66,
+          "is_suggested": true
+        }
+      ]
+    },
+    {
+      "structure_number": 2,
+      "total_area_sqft": 404.0,
+      "total_facets": 6,
+      "predominant_pitch": "7/12",
+      "complexity": "Simple",
+      "measurements": {
+        "ridges_ft": 0.0,
+        "hips_ft": 78.0,
+        "valleys_ft": 0.0,
+        "rakes_ft": 0.0,
+        "eaves_ft": 69.0,
+        "flashing_ft": 0.0,
+        "step_flashing_ft": 0.0,
+        "drip_edge_ft": 69.0
+      },
+      "pitch_breakdown": [
+        {
+          "pitch": "7/12",
+          "area_sqft": 401.1,
+          "percent_of_roof": 100.0
+        }
+      ],
+      "suggested_waste": {
+        "waste_percent": 50,
+        "area_sqft": 602.0,
+        "squares": 6.33,
+        "is_suggested": true
+      },
+      "all_waste_calculations": [
+        {
+          "waste_percent": 0,
+          "area_sqft": 401.0,
+          "squares": 4.33,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 20,
+          "area_sqft": 482.0,
+          "squares": 5.0,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 25,
+          "area_sqft": 502.0,
+          "squares": 5.33,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 30,
+          "area_sqft": 522.0,
+          "squares": 5.33,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 35,
+          "area_sqft": 542.0,
+          "squares": 5.66,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 40,
+          "area_sqft": 562.0,
+          "squares": 5.66,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 45,
+          "area_sqft": 582.0,
+          "squares": 6.0,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 48,
+          "area_sqft": 594.0,
+          "squares": 6.0,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 50,
+          "area_sqft": 602.0,
+          "squares": 6.33,
+          "is_suggested": true
+        }
+      ]
+    },
+    {
+      "structure_number": 3,
+      "total_area_sqft": 200.0,
+      "total_facets": 4,
+      "predominant_pitch": "24/12",
+      "complexity": "Complex",
+      "measurements": {
+        "ridges_ft": 12.0,
+        "hips_ft": 0.0,
+        "valleys_ft": 0.0,
+        "rakes_ft": 33.0,
+        "eaves_ft": 25.0,
+        "flashing_ft": 0.0,
+        "step_flashing_ft": 0.0,
+        "drip_edge_ft": 58.0
+      },
+      "pitch_breakdown": [
+        {
+          "pitch": "4/12",
+          "area_sqft": 90.6,
+          "percent_of_roof": 45.2
+        },
+        {
+          "pitch": "24/12",
+          "area_sqft": 109.8,
+          "percent_of_roof": 54.8
+        }
+      ],
+      "suggested_waste": {
+        "waste_percent": 27,
+        "area_sqft": 256.0,
+        "squares": 2.66,
+        "is_suggested": true
+      },
+      "all_waste_calculations": [
+        {
+          "waste_percent": 0,
+          "area_sqft": 201.0,
+          "squares": 2.33,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 2,
+          "area_sqft": 206.0,
+          "squares": 2.33,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 7,
+          "area_sqft": 216.0,
+          "squares": 2.33,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 12,
+          "area_sqft": 226.0,
+          "squares": 2.33,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 15,
+          "area_sqft": 232.0,
+          "squares": 2.33,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 17,
+          "area_sqft": 236.0,
+          "squares": 2.66,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 19,
+          "area_sqft": 240.0,
+          "squares": 2.66,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 22,
+          "area_sqft": 246.0,
+          "squares": 2.66,
+          "is_suggested": false
+        },
+        {
+          "waste_percent": 27,
+          "area_sqft": 256.0,
+          "squares": 2.66,
+          "is_suggested": true
+        }
+      ]
+    }
+  ]
+}
