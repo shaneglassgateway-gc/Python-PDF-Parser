@@ -182,6 +182,8 @@ export function getCombinedMeasurements(data: EagleViewParserOutput) {
     }
     s2Squares = baseSquares * (1 + wastePct / 100);
   }
+  const s1Rounded = Math.ceil(s1Squares || 0);
+  const s2Rounded = Math.ceil(s2Squares || 0);
   return {
     total_area_sqft: s1.total_area_sqft + s2.total_area_sqft,
     ridges_ft: s1.measurements.ridges_ft + s2.measurements.ridges_ft,
@@ -193,7 +195,7 @@ export function getCombinedMeasurements(data: EagleViewParserOutput) {
     step_flashing_ft: s1.measurements.step_flashing_ft + s2.measurements.step_flashing_ft,
     drip_edge_ft: s1.measurements.drip_edge_ft + s2.measurements.drip_edge_ft,
     predominant_pitch: s1.predominant_pitch,  // Use main structure's pitch
-    suggested_squares: s1Squares + s2Squares,
+    suggested_squares: s1Rounded + s2Rounded,
     pitch_breakdown: mergePitchBreakdowns(s1.pitch_breakdown, s2.pitch_breakdown)
   };
 }
