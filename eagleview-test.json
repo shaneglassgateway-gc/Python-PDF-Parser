@@ -269,9 +269,9 @@
         }
       ],
       "suggested_waste": {
-        "waste_percent": 27,
-        "area_sqft": 3554.0,
-        "squares": 35.66,
+        "waste_percent": 12,
+        "area_sqft": 3134.0,
+        "squares": 31.66,
         "is_suggested": true
       },
       "all_waste_calculations": [
@@ -303,7 +303,7 @@
           "waste_percent": 12,
           "area_sqft": 3134.0,
           "squares": 31.66,
-          "is_suggested": false
+          "is_suggested": true
         },
         {
           "waste_percent": 14,
@@ -327,7 +327,7 @@
           "waste_percent": 27,
           "area_sqft": 3554.0,
           "squares": 35.66,
-          "is_suggested": true
+          "is_suggested": false
         }
       ]
     },
@@ -446,8 +446,8 @@
         }
       ],
       "suggested_waste": {
-        "waste_percent": 27,
-        "area_sqft": 256.0,
+        "waste_percent": 17,
+        "area_sqft": 236.0,
         "squares": 2.66,
         "is_suggested": true
       },
@@ -486,7 +486,7 @@
           "waste_percent": 17,
           "area_sqft": 236.0,
           "squares": 2.66,
-          "is_suggested": false
+          "is_suggested": true
         },
         {
           "waste_percent": 19,
@@ -504,7 +504,7 @@
           "waste_percent": 27,
           "area_sqft": 256.0,
           "squares": 2.66,
-          "is_suggested": true
+          "is_suggested": false
         }
       ]
     }

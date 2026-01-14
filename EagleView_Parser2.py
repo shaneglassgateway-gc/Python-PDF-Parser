@@ -380,18 +380,54 @@ class EagleViewParser:
             sq_values = re.findall(r'([\d.]+)', waste_section.group(3))
             table_text = (table_full.group(0) if table_full else waste_section.group(0))
             suggested_pct = None
-            sug_label = re.search(r'Suggested', table_text, re.IGNORECASE)
-            if sug_label:
+            # PRIMARY: PDF coordinate-based column alignment
+            page_index = None
+            for idx, ptxt in enumerate(self.pages_text):
+                if re.search(rf'\bStructure[\s:#\-]*{struct_num}\b', ptxt, re.IGNORECASE):
+                    if ('Waste' in ptxt) and ('Suggested' in ptxt):
+                        page_index = idx
+                        break
+            if page_index is not None:
                 try:
-                    sug_pos = sug_label.start()
-                    percent_tokens = list(re.finditer(r'(\d+)\s*%', table_text))
-                    if percent_tokens:
-                        nearest = min(percent_tokens, key=lambda m: abs(m.start() - sug_pos))
-                        suggested_pct = int(nearest.group(1))
+                    import pdfplumber as _pp
+                    with _pp.open(self.pdf_path) as pdf:
+                        page = pdf.pages[page_index]
+                        words = page.extract_words()
+                        sug_words = [w for w in words if re.search(r'^suggested$', w.get('text',''), re.IGNORECASE)]
+                        if sug_words:
+                            sug_word = sug_words[0]
+                            sug_center_x = (sug_word['x0'] + sug_word['x1']) / 2
+                            sug_top = sug_word['top']
+                            candidates = []
+                            for w in words:
+                                text = w.get('text','')
+                                w_top = w['top']
+                                if w_top >= sug_top or (sug_top - w_top) > 150:
+                                    continue
+                                m = re.match(r'^(\d{1,2})%$', text)
+                                if m:
+                                    pct_val = int(m.group(1))
+                                    w_center_x = (w['x0'] + w['x1']) / 2
+                                    x_dist = abs(w_center_x - sug_center_x)
+                                    if x_dist < 60:
+                                        candidates.append((pct_val, x_dist))
+                            if candidates:
+                                candidates.sort(key=lambda x: x[1])
+                                suggested_pct = candidates[0][0]
                 except Exception:
-                    suggested_pct = None
+                    pass
+            # FALLBACK: text proximity if coordinates failed
             if suggested_pct is None:
-                # Try positional detection using page words to anchor Suggested to a percent column
+                sug_label = re.search(r'Suggested', table_text, re.IGNORECASE)
+                if sug_label:
+                    try:
+                        sug_pos = sug_label.start()
+                        percent_tokens = list(re.finditer(r'(\d+)\s*%', table_text))
+                        if percent_tokens:
+                            nearest = min(percent_tokens, key=lambda m: abs(m.start() - sug_pos))
+                            suggested_pct = int(nearest.group(1))
+                    except Exception:
+                        suggested_pct = None
                 page_index = None
                 for idx, ptxt in enumerate(self.pages_text):
                     if re.search(rf'\bStructure[\s:#\-]*{struct_num}\b', ptxt, re.IGNORECASE):
