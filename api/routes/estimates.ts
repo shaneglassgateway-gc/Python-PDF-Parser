@@ -67,10 +67,7 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
     let parsedData: any = null
     let lastError: any = null
 
-    // Prefer local parser first
     const pythonCmd = await resolvePython()
-    
-    
     if (pythonCmd) {
       try {
         const __filename = fileURLToPath(import.meta.url)
@@ -89,7 +86,6 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
       }
     }
 
-    // Fallback to remote Python parser only if local failed
     if (!parsedData && process.env.PYTHON_PARSE_URL) {
       try {
         const buffer = fs.readFileSync(filePath)

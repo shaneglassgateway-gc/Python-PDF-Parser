@@ -203,13 +203,13 @@ class EagleViewParser:
         flashing = self._extract_number(r'(?<!Step\s)Flashing\s*[=:]\s*([\d,]+(?:\.\d+)?)\s*ft')
         step_flashing = self._extract_number(r'Step\s+[Ff]lashing\s*[=:]\s*([\d,]+(?:\.\d+)?)\s*ft')
         
-        # Drip edge - may appear as "Drip Edge (Eaves + Rakes)" or just extraction from eaves + rakes
+        # Drip edge - explicit or computed from eaves + rakes
+        drip_edge = None
         drip_edge_match = re.search(r'Drip\s+Edge\s*\([^)]*\)\s*=\s*([\d,]+(?:\.\d+)?)\s*ft', self.text_content)
         if drip_edge_match:
             drip_edge = float(drip_edge_match.group(1).replace(",", ""))
-        elif False:
-            # Calculate from eaves + rakes if not explicitly stated
-            drip_edge = (eaves or 0) + (rakes or 0) if (eaves or rakes) else 0
+        else:
+            drip_edge = (eaves or 0) + (rakes or 0)
         
         # Estimated attic
         attic = self._extract_number(r'Estimated\s+Attic\s*[=:]\s*([\d,]+(?:\.\d+)?)\s*sq\s*ft')
@@ -418,129 +418,7 @@ class EagleViewParser:
                     except ValueError:
                         continue
         else:
-            # OCR fallback: try to get text from the page containing this structure
-            try:
-                import pdfplumber as _pp
-                from PIL import Image
-                import pytesseract, os
-                tess_cmd = os.environ.get('TESSERACT_CMD') or os.environ.get('TESSERACT_PATH')
-                if not tess_cmd:
-                    default_tess = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-                    if os.path.exists(default_tess):
-                        tess_cmd = default_tess
-                if not tess_cmd:
-                    for p in ("/usr/bin/tesseract", "/usr/local/bin/tesseract", "/bin/tesseract"):
-                        if os.path.exists(p):
-                            tess_cmd = p
-                            break
-                if tess_cmd:
-                    try:
-                        pytesseract.pytesseract.tesseract_cmd = tess_cmd
-                    except Exception:
-                        pass
-                if not os.environ.get('TESSDATA_PREFIX'):
-                    default_tessdata = r"C:\Program Files\Tesseract-OCR\tessdata"
-                    if os.path.exists(default_tessdata):
-                        os.environ['TESSDATA_PREFIX'] = default_tessdata
-                    else:
-                        for d in (
-                            "/usr/share/tesseract-ocr/5/tessdata",
-                            "/usr/share/tesseract-ocr/4.00/tessdata",
-                            "/usr/share/tesseract-ocr/tessdata",
-                        ):
-                            if os.path.exists(d):
-                                os.environ['TESSDATA_PREFIX'] = d
-                                break
-                page_index = None
-                for idx, ptxt in enumerate(self.pages_text):
-                    if re.search(rf'\bStructure[\s:#\-]*{struct_num}\b', ptxt, re.IGNORECASE):
-                        page_index = idx
-                        break
-                if page_index is not None:
-                    with _pp.open(self.pdf_path) as pdf:
-                        page = pdf.pages[page_index]
-                        # Crop lower portion where waste table typically resides
-                        width = page.width
-                        height = page.height
-                        crop = page.crop((0, height * 0.55, width, height * 0.98))
-                        crop_img = crop.to_image(resolution=300).original.convert("L")
-                        crop_img = crop_img.point(lambda x: 255 if x > 200 else (0 if x < 80 else x))
-                        ocr_text = pytesseract.image_to_string(crop_img, lang="eng", config="--psm 6")
-                        # Re-run waste detection on OCR text
-                        waste_section_ocr = re.search(
-                            r'Waste\s*%\s*[\s\S]*?Squares[\s\S]*?(?=Roof\s+Pitches|Structure\s+\d+|All\s+Structures|REPORT|PAGE|\Z)',
-                            ocr_text,
-                            re.IGNORECASE
-                        )
-                        if waste_section_ocr:
-                            table_text = waste_section_ocr.group(0)
-                            inline_match = re.search(r'(\d+)\s*%[^\n]{0,300}?Suggested', table_text, re.IGNORECASE)
-                            if not inline_match:
-                                inline_match = re.search(r'Suggested[^\n]{0,300}?(\d+)\s*%', table_text, re.IGNORECASE)
-                            suggested_pct = None
-                            if inline_match:
-                                try:
-                                    suggested_pct = int(inline_match.group(1))
-                                except Exception:
-                                    suggested_pct = None
-                            if suggested_pct is not None:
-                                # Try to anchor by squares above the "Suggested" label
-                                try:
-                                    prev_sq = None
-                                    suggest_pos = inline_match.start()
-                                    for m in re.finditer(r'Squares\s*\*?\s*[\s:]*([\d.]+)', table_text, re.IGNORECASE):
-                                        if m.end() <= suggest_pos:
-                                            prev_sq = m.group(1)
-                                    # compute area/squares if structure area available; otherwise, return at least the waste percent
-                                    if prev_sq:
-                                        try:
-                                            squares = float(prev_sq)
-                                            area_sqft = round(squares * 100.0, 2)  # area including waste; raw area not available here reliably
-                                            wc = WasteCalculation(
-                                                waste_percent=suggested_pct,
-                                                area_sqft=area_sqft,
-                                                squares=squares,
-                                                is_suggested=True
-                                            )
-                                            waste_calcs.append(wc)
-                                            suggested_waste = wc
-                                        except Exception:
-                                            pass
-                                except Exception:
-                                    pass
-                                # Compute squares and area from structure area since OCR table numbers may be unreliable
-                                # Attempt to extract structure area from known measurements table or previously gathered struct_measurements
-                                # Fallback: try to parse area from text; else skip
-                                total_area_match = re.search(r'Area\s*[:\-]?\s*([\d,]+(?:\.\d+)?)\s*sq', self.text_content, re.IGNORECASE)
-                                area_sqft = None
-                                try:
-                                    # Prefer structured value if available: we will try to locate structure in parse_structures later
-                                    # Here we approximate by finding area in current structure_text
-                                    area_in_struct = re.search(r'Area\s*[:\-]?\s*([\d,]+(?:\.\d+)?)\s*sq', structure_text, re.IGNORECASE)
-                                    if area_in_struct:
-                                        area_sqft = float(area_in_struct.group(1).replace(',', ''))
-                                except Exception:
-                                    area_sqft = None
-                                # As a fallback, try to find any large number near "Squares" header (not ideal but better than missing)
-                                if area_sqft is None:
-                                    approx_area = re.findall(r'\b([\d,]{3,})\b', structure_text)
-                                    if approx_area:
-                                        try:
-                                            area_sqft = float(approx_area[0].replace(',', ''))
-                                        except Exception:
-                                            area_sqft = None
-                                if area_sqft and area_sqft > 0:
-                                    squares = round((area_sqft * (1 + suggested_pct / 100.0)) / 100.0, 2)
-                                    wc = WasteCalculation(
-                                        waste_percent=suggested_pct,
-                                        area_sqft=round(area_sqft * (1 + suggested_pct / 100.0), 2),
-                                        squares=squares,
-                                        is_suggested=True
-                                    )
-                                    waste_calcs.append(wc)
-                                    suggested_waste = wc
-            except Exception:
-                pass
+            pass
         
         return waste_calcs, suggested_waste
     
