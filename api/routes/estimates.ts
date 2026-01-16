@@ -9,6 +9,22 @@ import { fileURLToPath } from 'url'
 
 const execAsync = promisify(exec)
 const router = Router()
+const DEV_NO_AUTH = process.env.DEV_NO_AUTH === 'true'
+const DEV_STORE = path.resolve(process.cwd(), 'uploads', 'dev-estimates.json')
+function devReadAll(): any[] {
+  try {
+    if (!fs.existsSync(DEV_STORE)) return []
+    const txt = fs.readFileSync(DEV_STORE, 'utf-8')
+    return txt ? JSON.parse(txt) : []
+  } catch { return [] }
+}
+function devWriteAll(items: any[]) {
+  try {
+    const dir = path.dirname(DEV_STORE)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(DEV_STORE, JSON.stringify(items, null, 2), 'utf-8')
+  } catch {}
+}
 
 async function resolvePython(): Promise<string | null> {
   const cmds = ['py -3', 'python3', 'python']
@@ -123,6 +139,9 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
 // Get all estimates for the authenticated user
 router.get('/', async (req: Request, res: Response) => {
   try {
+    if (DEV_NO_AUTH) {
+      return res.json({ estimates: devReadAll() })
+    }
     const authHeader = req.headers.authorization
     if (!authHeader) {
       return res.status(401).json({ error: 'No authorization header' })
@@ -227,6 +246,12 @@ router.get('/material-order-rules', async (req: Request, res: Response) => {
 // Get a single estimate
 router.get('/:id', async (req: Request, res: Response) => {
   try {
+    if (DEV_NO_AUTH) {
+      const all = devReadAll()
+      const item = all.find((e: any) => String(e.id) === String(req.params.id))
+      if (!item) return res.status(404).json({ error: 'Estimate not found' })
+      return res.json({ estimate: item })
+    }
     const authHeader = req.headers.authorization
     if (!authHeader) {
       return res.status(401).json({ error: 'No authorization header' })
@@ -276,6 +301,14 @@ router.get('/:id', async (req: Request, res: Response) => {
 // Create a new estimate
 router.post('/', async (req: Request, res: Response) => {
   try {
+    if (DEV_NO_AUTH) {
+      const all = devReadAll()
+      const id = `${Date.now()}-${Math.floor(Math.random()*1e6)}`
+      const item = { id, status: 'draft', ...req.body }
+      all.unshift(item)
+      devWriteAll(all)
+      return res.json({ estimate: item })
+    }
     const authHeader = req.headers.authorization
     if (!authHeader) {
       return res.status(401).json({ error: 'No authorization header' })
@@ -317,6 +350,15 @@ router.post('/', async (req: Request, res: Response) => {
 // Update an estimate
 router.put('/:id', async (req: Request, res: Response) => {
   try {
+    if (DEV_NO_AUTH) {
+      const all = devReadAll()
+      const idx = all.findIndex((e: any) => String(e.id) === String(req.params.id))
+      if (idx === -1) return res.status(404).json({ error: 'Estimate not found' })
+      const updated = { ...all[idx], ...req.body }
+      all[idx] = updated
+      devWriteAll(all)
+      return res.json({ estimate: updated })
+    }
     const authHeader = req.headers.authorization
     if (!authHeader) {
       return res.status(401).json({ error: 'No authorization header' })
@@ -362,6 +404,12 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
+    if (DEV_NO_AUTH) {
+      const all = devReadAll()
+      const after = all.filter((e: any) => String(e.id) !== String(req.params.id))
+      devWriteAll(after)
+      return res.json({ success: true })
+    }
     const authHeader = req.headers.authorization
     if (!authHeader) {
       return res.status(401).json({ error: 'No authorization header' })

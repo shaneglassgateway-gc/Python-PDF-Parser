@@ -210,11 +210,12 @@ export default function Upload() {
     setError(null)
     
     try {
-      // Get the current user session
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        throw new Error('You must be logged in to create estimates')
+      const dev = (import.meta as any).env?.VITE_DEV_NO_AUTH === 'true'
+      let session: any = null
+      if (!dev) {
+        const sres = await supabase.auth.getSession()
+        session = sres.data.session
+        if (!session) throw new Error('You must be logged in to create estimates')
       }
       
       // Create estimate data
@@ -266,7 +267,7 @@ export default function Upload() {
       // Create the estimate
       const response = await fetch(`${apiBase()}/api/estimates`, {
         method: 'POST',
-        headers: {
+        headers: dev ? { 'Content-Type': 'application/json' } : {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },

@@ -38,17 +38,16 @@ export default function History() {
 
   const loadEstimates = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        throw new Error('You must be logged in to view estimates')
-      }
-
-      const response = await fetch(`${apiBase()}/api/estimates`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
+      const dev = (import.meta as any).env?.VITE_DEV_NO_AUTH === 'true'
+      const headers: Record<string,string> = {}
+      if (!dev) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          throw new Error('You must be logged in to view estimates')
         }
-      })
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+      const response = await fetch(`${apiBase()}/api/estimates`, { headers })
 
       if (!response.ok) {
         throw new Error('Failed to load estimates')
@@ -64,15 +63,16 @@ export default function History() {
   }
   const loadMaterialOrders = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        throw new Error('You must be logged in to view material orders')
-      }
-      const response = await fetch(`${apiBase()}/api/material-orders`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
+      const dev = (import.meta as any).env?.VITE_DEV_NO_AUTH === 'true'
+      const headers: Record<string,string> = {}
+      if (!dev) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          throw new Error('You must be logged in to view material orders')
         }
-      })
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+      const response = await fetch(`${apiBase()}/api/material-orders`, { headers })
       if (!response.ok) {
         throw new Error('Failed to load material orders')
       }
@@ -88,17 +88,17 @@ export default function History() {
     try {
       const confirmDelete = window.confirm('Delete this estimate? This cannot be undone.')
       if (!confirmDelete) return
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        setError('You must be logged in to delete estimates')
-        return
-      }
-      const resp = await fetch(`${apiBase()}/api/estimates/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
+      const dev = (import.meta as any).env?.VITE_DEV_NO_AUTH === 'true'
+      const headers: Record<string,string> = {}
+      if (!dev) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          setError('You must be logged in to delete estimates')
+          return
         }
-      })
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+      const resp = await fetch(`${apiBase()}/api/estimates/${id}`, { method: 'DELETE', headers })
       if (!resp.ok) {
         const msg = await resp.text()
         throw new Error(msg || 'Failed to delete estimate')

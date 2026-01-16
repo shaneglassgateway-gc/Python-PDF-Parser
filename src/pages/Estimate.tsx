@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, Mail, Calculator, Building, DollarSign, HardHat } from 'lucide-react'
+import jsPDF from 'jspdf'
 import { supabase } from '../lib/supabase'
 import { apiBase } from '../lib/utils'
 import { 
@@ -77,6 +78,7 @@ export default function Estimate() {
   })
   const financedTag = '[financed]'
   const [isAdmin, setIsAdmin] = useState(false)
+  const [estimatorName, setEstimatorName] = useState('')
 
   useEffect(() => {
     loadEstimate()
@@ -91,17 +93,17 @@ export default function Estimate() {
 
   const loadEstimate = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        throw new Error('You must be logged in to view estimates')
+      const dev = (import.meta as any).env?.VITE_DEV_NO_AUTH === 'true'
+      let session: any = null
+      if (!dev) {
+        const sres = await supabase.auth.getSession()
+        session = sres.data.session
+        if (!session) throw new Error('You must be logged in to view estimates')
       }
       setIsAdmin(((session as any)?.user?.user_metadata?.role) === 'admin')
 
-      const response = await fetch(`${apiBase()}/api/estimates/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
+      const response = await fetch(`${apiBase()}/api/estimates/${id}`, dev ? {} : {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
       })
 
       if (!response.ok) {
@@ -113,6 +115,15 @@ export default function Estimate() {
       const raw = result.estimate.profit_margin
       const cm = (typeof raw === 'number' && raw >= 0.35 && raw <= 0.60) ? raw : 0.40
       setContributionPct(cm)
+      if (!dev) {
+        const user = (session?.user as any) || {}
+        const fn = user?.user_metadata?.first_name || ''
+        const ln = user?.user_metadata?.last_name || ''
+        const name = `${fn} ${ln}`.trim() || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.display_name || ''
+        setEstimatorName(name || '')
+      } else {
+        setEstimatorName('Gateway Estimator')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load estimate')
     } finally {
@@ -250,8 +261,290 @@ export default function Estimate() {
   }
 
   const handleExportPDF = () => {
-    // TODO: Implement PDF export
-    alert('PDF export will be implemented soon!')
+    if (!estimate) return
+    const pdf = new jsPDF('p', 'pt', 'a4')
+    const marginLeft = 40
+    const marginTop = 40
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const loadLogo = () =>
+      new Promise<string | null>(resolve => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          const c = document.createElement('canvas')
+          c.width = img.width
+          c.height = img.height
+          const ctx = c.getContext('2d')
+          if (!ctx) return resolve(null)
+          ctx.drawImage(img, 0, 0)
+          resolve(c.toDataURL('image/png'))
+        }
+        img.onerror = () => resolve(null)
+        img.src = '/logo.png'
+      })
+    loadLogo().then(logoData => {
+      if (logoData) {
+        const logoW = 96
+        const logoH = 96
+        pdf.addImage(logoData, 'PNG', pageWidth - marginLeft - logoW, marginTop - 6, logoW, logoH)
+      }
+      pdf.setFontSize(16)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Gateway General Contractors', pageWidth / 2, marginTop, { align: 'center' })
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(12)
+      pdf.text(`Name: ${estimate.customer_name || ''}`, marginLeft, marginTop + 24)
+      pdf.text(`Address: ${estimate.customer_address || ''}`, marginLeft, marginTop + 42)
+      pdf.text(`Estimator: ${estimatorName || ''}`, marginLeft, marginTop + 60)
+      const sectionTop = marginTop + 100
+      const pageH = pdf.internal.pageSize.getHeight()
+      const availableW = pageWidth - marginLeft * 2
+      const gap = 24
+      const tableW = Math.floor((availableW - gap) / 2)
+      const tableH = Math.floor(pageH * 0.5)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(13)
+      pdf.text('Materials', marginLeft, sectionTop)
+      pdf.text('Labor', marginLeft + tableW + gap, sectionTop)
+      const leftTop = sectionTop + 16
+      const rightTop = sectionTop + 16
+      const colPerc = [0.65, 0.15, 0.20]
+      const colWs = colPerc.map(p => Math.floor(tableW * p))
+      const leftXs = [marginLeft, marginLeft + colWs[0], marginLeft + colWs[0] + colWs[1]]
+      const rightXs = [marginLeft + tableW + gap, marginLeft + tableW + gap + colWs[0], marginLeft + tableW + gap + colWs[0] + colWs[1]]
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(10)
+      pdf.setFillColor(245,245,245)
+      pdf.rect(marginLeft, leftTop, tableW, 22, 'F')
+      pdf.rect(marginLeft + tableW + gap, rightTop, tableW, 22, 'F')
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Name', leftXs[0] + 6, leftTop + 14)
+      pdf.text('Unit', leftXs[1] + 6, leftTop + 14)
+      pdf.text('Qty', leftXs[2] + 6, leftTop + 14)
+      pdf.text('Name', rightXs[0] + 6, rightTop + 14)
+      pdf.text('Unit', rightXs[1] + 6, rightTop + 14)
+      pdf.text('Qty', rightXs[2] + 6, rightTop + 14)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(10)
+      const matRows = materialCosts.map(m => ({ name: m.itemName, unit: m.unitOfMeasure, qty: m.quantity }))
+      const labRows = laborCosts.map(l => ({
+        name: l.conditionType,
+        unit: (!l.ratePerSquare && !l.ratePerLinearFoot) ? '' : (l.ratePerSquare ? 'SQ' : 'LF'),
+        qty: l.quantity
+      }))
+      let ly = leftTop + 22
+      let ry = rightTop + 22
+      const drawRow = (x0: number[], y0: number, row: {name:string;unit:string;qty:any}) => {
+        const nameLines = pdf.splitTextToSize(String(row.name || ''), colWs[0] - 12)
+        const lines = Array.isArray(nameLines) ? nameLines.slice(0, 2) : [String(nameLines)]
+        const lineH = 11
+        const rowH = Math.max(18, 4 + lines.length * lineH + 4)
+        pdf.text(lines, x0[0] + 6, y0 + 12)
+        pdf.text(String(row.unit || ''), x0[1] + 6, y0 + 12)
+        pdf.text(String(row.qty ?? 0), x0[2] + 6, y0 + 12)
+        pdf.setDrawColor(230,230,230)
+        pdf.line(x0[0], y0 + rowH, x0[0] + tableW, y0 + rowH)
+        return rowH
+      }
+      let mi = 0
+      while (mi < matRows.length) {
+        const nextH = drawRow(leftXs, ly, matRows[mi])
+        ly += nextH
+        mi++
+      }
+      let li = 0
+      while (li < labRows.length) {
+        const nextH = drawRow(rightXs, ry, labRows[li])
+        ry += nextH
+        li++
+      }
+      const usedLeftH = Math.max(22, ly - leftTop)
+      const usedRightH = Math.max(22, ry - rightTop)
+      pdf.setDrawColor(200,200,200)
+      pdf.rect(marginLeft, leftTop, tableW, usedLeftH)
+      pdf.rect(marginLeft + tableW + gap, rightTop, tableW, usedRightH)
+      pdf.setDrawColor(220,220,220)
+      pdf.line(leftXs[1], leftTop, leftXs[1], leftTop + usedLeftH)
+      pdf.line(leftXs[2], leftTop, leftXs[2], leftTop + usedLeftH)
+      pdf.line(rightXs[1], rightTop, rightXs[1], rightTop + usedRightH)
+      pdf.line(rightXs[2], rightTop, rightXs[2], rightTop + usedRightH)
+      const otherSpacing = 20
+      const otherTop = ry + otherSpacing
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(13)
+      pdf.text('Other Trades', marginLeft + tableW + gap, otherTop)
+      const otherHeaderTop = otherTop + 12
+      const otherColPerc = [0.65, 0.15, 0.20]
+      const otherColWs = otherColPerc.map(p => Math.floor(tableW * p))
+      const otherXs = [marginLeft + tableW + gap, marginLeft + tableW + gap + otherColWs[0], marginLeft + tableW + gap + otherColWs[0] + otherColWs[1]]
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(10)
+      pdf.setFillColor(245,245,245)
+      pdf.rect(marginLeft + tableW + gap, otherHeaderTop, tableW, 22, 'F')
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Name', otherXs[0] + 6, otherHeaderTop + 14)
+      pdf.text('Unit', otherXs[1] + 6, otherHeaderTop + 14)
+      pdf.text('Qty', otherXs[2] + 6, otherHeaderTop + 14)
+      const otherItems = [
+        { name: 'Other trades (gutters, siding) not included in scope of work', unit: '', qty: '' }
+      ]
+      let oy = otherHeaderTop + 22
+      const drawOtherRow = (x0: number[], y0: number, row: {name:string;unit:string;qty:any}) => {
+        const nameLines = pdf.splitTextToSize(String(row.name || ''), otherColWs[0] - 12)
+        const lines = Array.isArray(nameLines) ? nameLines.slice(0, 3) : [String(nameLines)]
+        const lineH = 12
+        const rowH = Math.max(18, 4 + lines.length * lineH + 4)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(10)
+        pdf.text(lines, x0[0] + 6, y0 + 12)
+        pdf.text(String(row.unit || ''), x0[1] + 6, y0 + 12)
+        pdf.text(String(row.qty ?? ''), x0[2] + 6, y0 + 12)
+        pdf.setDrawColor(230,230,230)
+        pdf.line(x0[0], y0 + rowH, x0[0] + tableW, y0 + rowH)
+        return rowH
+      }
+      const leftBottomY = leftTop + Math.max(22, ly - leftTop)
+      for (let i = 0; i < otherItems.length; i++) {
+        const nextH = drawOtherRow(otherXs, oy, otherItems[i])
+        if (oy + nextH > leftBottomY) {
+          oy = leftBottomY
+          break
+        }
+        oy += nextH
+      }
+      const usedOtherH = Math.max(22, oy - otherHeaderTop)
+      pdf.setDrawColor(200,200,200)
+      pdf.rect(marginLeft + tableW + gap, otherHeaderTop, tableW, usedOtherH)
+      pdf.setDrawColor(220,220,220)
+      pdf.line(otherXs[1], otherHeaderTop, otherXs[1], otherHeaderTop + usedOtherH)
+      pdf.line(otherXs[2], otherHeaderTop, otherXs[2], otherHeaderTop + usedOtherH)
+      let y = Math.max(leftBottomY, oy) + 24
+      // Move to next page if needed
+      const pageH2 = pdf.internal.pageSize.getHeight()
+      if (y + 140 > pageH2 - marginTop) {
+        pdf.addPage()
+        y = marginTop
+      }
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(14)
+      pdf.text('Contract Total', marginLeft, y)
+      pdf.setFontSize(18)
+      pdf.setTextColor(34, 197, 94)
+      pdf.text(`$${(totalCosts.totalCost || 0).toFixed(2)}`, marginLeft + 150, y)
+      pdf.setTextColor(0)
+      y += 28
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(12)
+      pdf.text('GoodLeap Financing Options', marginLeft, y)
+      const financeTotal = (totalCosts.totalCost || 0) + 500
+      const opt5 = 0.02327 * financeTotal
+      const opt10 = 0.01515 * financeTotal
+      const opt15 = 0.0128 * financeTotal
+      const boxTop = y + 12
+      const boxGap = 16
+      const boxW = Math.floor((availableW - boxGap * 2) / 3)
+      // Compute scale-to-fit for boxes + fine print to keep on one page
+      const fineText = 'The payment amounts displayed are estimates of financing plan payments. The actual payment will be based on the homeowner’s credit worthiness, and financing plan selected. This is an estimate only, and not a offer or contract for financing. This includes a $500 Loan Origination Fee.'
+      const fineLinesProbe = pdf.splitTextToSize(fineText, availableW)
+      const probeFineH = (Array.isArray(fineLinesProbe) ? fineLinesProbe.length : 1) * 10
+      const pageH4 = pdf.internal.pageSize.getHeight()
+      const expectedTotalH = (boxTop - marginTop) + 150 + 20 + probeFineH
+      let scaleAll = 1
+      const maxH = pageH4 - marginTop - 12
+      if (expectedTotalH > maxH) {
+        scaleAll = Math.max(0.7, Math.min(0.95, maxH / expectedTotalH))
+      }
+      const boxHeight = Math.floor(150 * scaleAll)
+      const bx1 = marginLeft
+      const bx2 = marginLeft + boxW + boxGap
+      const bx3 = marginLeft + boxW * 2 + boxGap * 2
+      const drawFinanceBox = (x: number, planNum: number, monthly: number, factorPct: number, periodLabel: string, s: number) => {
+        const h = boxHeight
+        const pad = 10
+        const cw = boxW - pad * 2
+        pdf.setDrawColor(200,200,200)
+        pdf.setFillColor(250,250,250)
+        pdf.rect(x, boxTop, boxW, h, 'F')
+        pdf.setDrawColor(225,225,225)
+        pdf.line(x, boxTop + Math.floor(28 * s), x + boxW, boxTop + Math.floor(28 * s))
+        const monthlyY = boxTop + h - Math.floor(16 * s)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setFontSize(Math.max(8, Math.floor(12 * s)))
+        pdf.text(`GoodLeap Plan ${planNum}`, x + pad, boxTop + Math.floor(18 * s))
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(Math.max(7, Math.floor(9 * s)))
+        const subtitle = 'First payment date will be determined by\ncustomer within 60 days of project completion.'
+        const subLines = pdf.splitTextToSize(subtitle, cw)
+        let subY = boxTop + Math.floor(44 * s)
+        const subLineH = Math.max(9, Math.floor(12 * s))
+        const subArr = Array.isArray(subLines) ? subLines : [String(subLines)]
+        for (const ln of subArr) {
+          pdf.text(String(ln), x + pad, subY)
+          subY += subLineH
+        }
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(Math.max(8, Math.floor(10 * s)))
+        let aprY = subY + Math.floor(4 * s)
+        pdf.text('APR 12.99%', x + pad, aprY)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setFontSize(Math.max(8, Math.floor(10 * s)))
+        let spacing = Math.max(10, Math.floor(12 * s))
+        let termY = aprY + spacing
+        let factorY = termY + spacing
+        const gapBelowMonthly = Math.max(30, Math.floor(44 * s))
+        const maxFactorY = monthlyY - gapBelowMonthly
+        if (factorY > maxFactorY) {
+          spacing = Math.max(10, Math.floor((maxFactorY - aprY) / 2))
+          termY = aprY + spacing
+          factorY = termY + spacing
+        }
+        const minSep = Math.max(10, Math.floor(10 * s))
+        const centerY = Math.floor((aprY + factorY) / 2)
+        termY = Math.min(Math.max(centerY, aprY + minSep), factorY - minSep)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setFontSize(Math.max(8, Math.floor(10 * s)))
+        pdf.text(`Term: ${periodLabel}`, x + pad, termY)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(Math.max(8, Math.floor(10 * s)))
+        pdf.text(`Payment Factor: ${factorPct.toFixed(3)}%`, x + pad, factorY)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setFontSize(Math.max(12, Math.floor(16 * s)))
+        pdf.setTextColor(34, 197, 94)
+        pdf.text(`$${monthly.toFixed(2)}/mo`, x + pad, monthlyY)
+        pdf.setTextColor(0)
+      }
+      drawFinanceBox(bx1, 1, opt5, 0.02327 * 100, '5 Years', scaleAll)
+      drawFinanceBox(bx2, 2, opt10, 0.01515 * 100, '10 Years', scaleAll)
+      drawFinanceBox(bx3, 3, opt15, 0.0128 * 100, '15 Years', scaleAll)
+      const fineTop = boxTop + boxHeight + 20
+      const pageH3 = pdf.internal.pageSize.getHeight()
+      const pageBottom = pageH3 - marginTop
+      let fy = fineTop
+      pdf.setFont('helvetica', 'normal')
+      let fineFontSize = Math.max(6, Math.floor(8 * scaleAll))
+      pdf.setFontSize(fineFontSize)
+      pdf.setTextColor(100, 100, 100)
+      const linesCount = Array.isArray(fineLinesProbe) ? fineLinesProbe.length : 1
+      const lineH = Math.max(7, Math.ceil(fineFontSize * 1.2))
+      let fineHeight = linesCount * lineH
+      if (fy + fineHeight > pageBottom) {
+        const room = pageBottom - fy
+        const ratio = room / fineHeight
+        const newFont = Math.max(6, Math.floor(fineFontSize * Math.min(1, ratio)))
+        fineFontSize = newFont
+        pdf.setFontSize(fineFontSize)
+        const newLineH = Math.max(7, Math.ceil(fineFontSize * 1.2))
+        const newFineHeight = linesCount * newLineH
+        if (fy + newFineHeight > pageBottom) {
+          fy = Math.max(marginTop + 4, pageBottom - newFineHeight)
+        }
+      }
+      pdf.text(fineLinesProbe, marginLeft, fy)
+      pdf.setTextColor(0)
+      const fileSafeName = String(estimate.customer_name || 'Estimate').replace(/[^a-z0-9_\-]+/gi, '_')
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+      pdf.save(`Estimate_${fileSafeName}_${stamp}.pdf`)
+    })
   }
 
   const handleEmailQuote = () => {
