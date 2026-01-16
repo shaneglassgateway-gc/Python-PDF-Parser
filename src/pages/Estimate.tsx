@@ -330,7 +330,7 @@ export default function Estimate() {
       const labRows = laborCosts.map(l => ({
         name: l.conditionType,
         unit: (!l.ratePerSquare && !l.ratePerLinearFoot) ? '' : (l.ratePerSquare ? 'SQ' : 'LF'),
-        qty: l.quantity
+        qty: l.ratePerSquare ? Number(l.quantity).toFixed(3) : l.quantity
       }))
       let ly = leftTop + 22
       let ry = rightTop + 22
@@ -721,7 +721,7 @@ export default function Estimate() {
                       <p className="font-medium text-gray-900">{labor.conditionType}</p>
                       <p className="text-sm text-gray-600">{labor.description}</p>
                       <p className="text-sm text-gray-600">
-                        {labor.quantity} {labor.ratePerSquare ? 'squares' : 'linear feet'} × ${(labor.ratePerSquare || labor.ratePerLinearFoot || 0).toFixed(2)}
+                        {labor.ratePerSquare ? Number(labor.quantity).toFixed(3) : labor.quantity} {labor.ratePerSquare ? 'squares' : 'linear feet'} × ${(labor.ratePerSquare || labor.ratePerLinearFoot || 0).toFixed(2)}
                       </p>
                     </div>
                     <div className="text-right">
