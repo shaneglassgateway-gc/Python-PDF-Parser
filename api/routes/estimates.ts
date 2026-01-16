@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express'
+import { Router } from 'express'
+import type { Request, Response } from 'express'
 import { createClient } from '@supabase/supabase-js'
 import multer from 'multer'
 import path from 'path'
@@ -45,14 +46,14 @@ const supabase = createClient(
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
     const uploadDir = process.env.UPLOAD_DIR || 'uploads'
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true })
     }
     cb(null, uploadDir)
   },
-  filename: (req, file, cb) => {
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname))
   }
@@ -61,7 +62,7 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '52428800') },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: Request, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {
     if (file.mimetype === 'application/pdf') {
       cb(null, true)
     } else {
@@ -113,7 +114,7 @@ router.post('/parse-eagleview', upload.single('file'), async (req: Request, res:
         if (!resp.ok) {
           throw new Error(`Remote parse failed: ${resp.status}`)
         }
-        const result = await resp.json()
+        const result: any = await resp.json()
         parsedData = result.data ?? result
       } catch (err) {
         lastError = err
