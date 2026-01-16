@@ -2,6 +2,7 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { createClient } from '@supabase/supabase-js'
 import multer from 'multer'
+import type { FileFilterCallback } from 'multer'
 import path from 'path'
 import fs from 'fs'
 import { exec } from 'child_process'
@@ -62,11 +63,11 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '52428800') },
-  fileFilter: (req: Request, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {
+  fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
     if (file.mimetype === 'application/pdf') {
       cb(null, true)
     } else {
-      cb(new Error('Only PDF files are allowed'))
+      cb(new Error('Only PDF files are allowed'), false)
     }
   }
 })
